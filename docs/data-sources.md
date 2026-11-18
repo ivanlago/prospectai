@@ -16,7 +16,7 @@ Referências: [licença e atribuição OSM](https://www.openstreetmap.org/copyri
 
 ### Extrato local de Salvador
 
-A opção **Extrato de Salvador · Geofabrik** consulta um recorte do arquivo OSM do Nordeste, com limite municipal pela malha do IBGE (código 2927408). Inclui estabelecimentos das categorias do painel mapeados como pontos. A data da versão aparece na execução. Esta fonte reutiliza os filtros do OpenStreetMap, tem a mesma retenção de resultados e consulta um arquivo local, sem usar a cota do Overpass. O arquivo de dados é regenerável e fica fora do Git.
+A opção **Extrato de Salvador · Geofabrik** consulta um recorte do arquivo OSM do Nordeste, com limite municipal pela malha do IBGE (código 2927408). Inclui estabelecimentos das categorias do painel mapeados como pontos. A data da versão aparece na execução. Esta fonte reutiliza os filtros do OpenStreetMap e tem a mesma retenção de resultados, sem usar a cota do Overpass. A cópia de trabalho em `.local-data` fica fora do Git. A versão publicada em `data/osm-salvador.json` é distribuída sob ODbL 1.0.
 
 Para preparar ou atualizar o extrato, baixe o PBF do [Diretório Geofabrik do Nordeste](https://download.geofabrik.de/south-america/brazil/nordeste.html) e a [malha municipal GeoJSON do IBGE](https://servicodados.ibge.gov.br/api/v3/malhas/municipios/2927408?formato=application%2Fvnd.geo%2Bjson&qualidade=intermediaria). Use a data da publicação do arquivo baixado.
 
@@ -25,7 +25,9 @@ python -m pip install "osmium==4.3.2" "shapely>=2.1,<3"
 python scripts/extract-salvador.py nordeste-261117.osm.pbf salvador.geojson 2026-11-17
 ```
 
-Defina `ENABLE_OSM_SALVADOR_EXTRACT=true` no ambiente local e reinicie o servidor. Para incluir o teste de navegador com dados reais, execute o Playwright com `PLAYWRIGHT_REAL_EXTRACT=true`. Em hospedagem, a fonte exige que o extrato seja disponibilizado ao runtime.
+Defina `ENABLE_OSM_SALVADOR_EXTRACT=true` e reinicie o servidor. A aplicação usa o extrato da pasta `.local-data` se houver uma cópia de trabalho e usa a versão publicada com o build nos demais ambientes. Para atualizar a versão publicada, revise o novo recorte e substitua `data/osm-salvador.json`. Para incluir o teste de navegador com dados reais, execute o Playwright com `PLAYWRIGHT_REAL_EXTRACT=true`.
+
+Crédito dos dados publicados: [© OpenStreetMap e colaboradores](https://www.openstreetmap.org/copyright) sob [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/). Extrato de origem: [Geofabrik Nordeste, versão de 17/11/2026](https://download.geofabrik.de/south-america/brazil/nordeste-261117.osm.pbf). Limite geográfico: [malha municipal do IBGE](https://servicodados.ibge.gov.br/api/v3/malhas/municipios/2927408?formato=application%2Fvnd.geo%2Bjson&qualidade=intermediaria).
 
 ## Outras fontes
 
