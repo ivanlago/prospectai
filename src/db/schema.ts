@@ -83,6 +83,31 @@ export const searches = pgTable("searches", {
   updatedAt: date("updated_at").notNull().defaultNow(),
 }, table => [index().on(table.createdAt)]);
 
+export const runStatus = pgEnum("search_run_status", ["running", "completed", "failed", "cancelled"]);
+export const searchRuns = pgTable("search_runs", {
+  id: uuid().primaryKey().defaultRandom(),
+  searchId: uuid("search_id").references(() => searches.id, { onDelete: "set null" }),
+  provider: text().notNull(),
+  status: runStatus().notNull().default("running"),
+  filters: jsonb().notNull(),
+  createdAt: created(),
+  finishedAt: date("finished_at"),
+  expiresAt: date("expires_at").notNull(),
+  resultCount: integer("result_count").notNull().default(0),
+  truncated: boolean().notNull().default(false),
+  error: text(),
+}, table => [index().on(table.searchId, table.createdAt), index().on(table.provider, table.createdAt)]);
+
+export const discoveryResults = pgTable("discovery_results", {
+  id: uuid().primaryKey().defaultRandom(),
+  runId: uuid("run_id").notNull().references(() => searchRuns.id, { onDelete: "cascade" }),
+  reference: text().notNull(),
+  name: text().notNull(),
+  website: text().notNull().default(""),
+  district: text().notNull().default(""),
+  identityKey: text("identity_key").notNull(),
+}, table => [uniqueIndex().on(table.runId, table.reference), index().on(table.runId, table.name)]);
+
 export const activities = pgTable("activities", {
   id: uuid().primaryKey().defaultRandom(),
   companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),

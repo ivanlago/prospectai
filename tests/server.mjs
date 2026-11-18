@@ -19,6 +19,7 @@ const env = {
   RESEND_API_KEY: "",
   RESET_FROM: "",
   AUTH_IP_HEADER: "",
+  ENABLE_OSM_PILOT: "true",
 };
 
 function run(script, ...args) {
@@ -34,7 +35,7 @@ for (const [script, argument] of [
   if (result !== 0) process.exit(1);
 }
 
-const app = run("node_modules/next/dist/bin/next", "start", "--port", "3841", "--hostname", "127.0.0.1");
+const app = run("--import", "./tests/overpass-fixture.mjs", "node_modules/next/dist/bin/next", "start", "--port", "3841", "--hostname", "127.0.0.1");
 process.on("SIGINT", () => app.kill());
 process.on("SIGTERM", () => app.kill());
 app.once("exit", async code => {
