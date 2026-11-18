@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
+import { z } from "zod";
 import { requireAdmin } from "@/auth";
 import { Empty, PageHeader, Pagination, pageNumber } from "@/components/controls";
 import { OsmCredit } from "@/components/osm-credit";
@@ -9,6 +10,7 @@ import { searchRuns } from "@/db/schema";
 import { formatDate, id } from "@/domain";
 import { discoveryNotices, runResults } from "@/features/discovery";
 import { categoryOptions, osmFilters } from "@/integrations/discovery/overpass";
+import { salvadorProvider } from "@/integrations/discovery/salvador-extract";
 import { cancelRun } from "../../discovery-actions";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +28,8 @@ export default async function RunPage({ params, searchParams }: {
   const page = pageNumber((await searchParams).pagina);
   const rows = await runResults(runId, page);
   const filters = osmFilters.safeParse(execution.filters).data;
+  const isExtract = execution.provider === salvadorProvider.id;
+  const snapshot = z.object({ snapshotDate: z.iso.date() }).safeParse(execution.filters).data?.snapshotDate;
   const category = categoryOptions.find(item => item.value === filters?.category)?.label;
   const labels = { running: "Em andamento", completed: "Concluída", failed: "Falhou", cancelled: "Cancelada" };
   return <>
@@ -34,6 +38,7 @@ export default async function RunPage({ params, searchParams }: {
     <section className="panel padded stack">
       <p><strong>{labels[execution.status]}</strong> · {formatDate(execution.createdAt)} · {execution.resultCount} resultado(s)</p>
       <p>Os resultados são descobertas do OpenStreetMap. A coluna de site indica a informação disponível na fonte.</p>
+      {isExtract && <p>Extrato Geofabrik de Salvador{snapshot ? ` · versão de ${snapshot.split("-").reverse().join("/")}` : ""}. Cobertura limitada a estabelecimentos mapeados como pontos.</p>}
       <OsmCredit />
       {execution.status === "running" && <div className="toolbar">
         <Link href={`/pesquisas/execucoes/${runId}`} className="button">Atualizar</Link>

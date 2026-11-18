@@ -20,6 +20,7 @@ const env = {
   RESET_FROM: "",
   AUTH_IP_HEADER: "",
   ENABLE_OSM_PILOT: "true",
+  ENABLE_OSM_SALVADOR_EXTRACT: process.env.PLAYWRIGHT_REAL_EXTRACT === "true" ? "true" : "false",
 };
 
 function run(script, ...args) {

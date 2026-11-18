@@ -38,7 +38,7 @@ export type DiscoveryFilters = z.infer<typeof osmFilters>;
 export type BusinessResult = { reference: string; name: string; website: string; district: string; identityKey: string };
 export type BusinessSearchProvider = {
   id: string;
-  search(input: DiscoveryFilters, signal?: AbortSignal): Promise<{ results: BusinessResult[]; truncated: boolean }>;
+  search(input: DiscoveryFilters, signal?: AbortSignal): Promise<{ results: BusinessResult[]; truncated: boolean; snapshotDate?: string }>;
 };
 
 function findState(value: string) {
@@ -75,12 +75,18 @@ function safeWebsite(value: string) {
 export function parseOverpass(payload: unknown, input: DiscoveryFilters) {
   const body = responseSchema.parse(payload);
   if (body.remark) throw new ProviderError("partial");
+  return filterOsmElements(body.elements.slice(0, scanLimit - 1), input, body.elements.length >= scanLimit);
+}
+
+export function filterOsmElements(elements: unknown[], input: DiscoveryFilters, scanTruncated = false) {
   const results: BusinessResult[] = [];
   const seen = new Set<string>();
-  for (const raw of body.elements.slice(0, scanLimit - 1)) {
+  const category = categories[input.category];
+  const state = findState(input.state);
+  for (const raw of elements) {
     const item = elementSchema.safeParse(raw).data;
     const name = item?.tags.name?.trim();
-    if (!item || !name || name.length > 160) continue;
+    if (!item || !name || name.length > 160 || item.tags[category.key] !== category.value) continue;
     const websiteTag = item.tags.website?.trim() || item.tags["contact:website"]?.trim() || "";
     const website = safeWebsite(websiteTag);
     const district = (item.tags["addr:suburb"] || item.tags["addr:neighbourhood"] || item.tags["addr:district"] || "").slice(0, 160);
@@ -90,11 +96,10 @@ export function parseOverpass(payload: unknown, input: DiscoveryFilters) {
     const reference = `${item.type}/${item.id}`;
     if (seen.has(reference)) continue;
     seen.add(reference);
-    const state = findState(input.state);
     const identityKey = companyKey({ name, city: input.city, state: state?.[1] ?? input.state, country: "Brasil", segment: "", address: "", website, contact: "", notes: "" });
     results.push({ reference, name, website, district, identityKey });
   }
-  return { results: results.slice(0, input.limit), truncated: body.elements.length >= scanLimit || results.length > input.limit };
+  return { results: results.slice(0, input.limit), truncated: scanTruncated || results.length > input.limit };
 }
 
 export class ProviderError extends Error {

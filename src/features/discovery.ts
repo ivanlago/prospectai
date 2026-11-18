@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { companies, discoveryResults, searchRuns, searches } from "@/db/schema";
 import { searchForm } from "@/domain";
 import { osmEnabled, osmFilters, osmProvider, normalize, ProviderError } from "@/integrations/discovery/overpass";
+import { coversSalvador, extractEnabled, salvadorProvider } from "@/integrations/discovery/salvador-extract";
 
 const lifetime = 7 * 86400000;
 const dailyLimit = 5;
@@ -22,10 +23,14 @@ export const discoveryNotices: Record<string, string> = {
   partial: "O provedor interrompeu a consulta e retornou dados incompletos.",
   timeout: "A execução excedeu o tempo permitido.",
   invalid: "O provedor retornou uma resposta inválida ou acima do limite.",
+  coverage: "O extrato local cobre apenas o município de Salvador, Bahia.",
+  extract: "O extrato local de Salvador está indisponível ou inválido.",
 };
 
-export async function executeDiscovery(searchId: string, category: FormDataEntryValue | null) {
-  if (!osmEnabled()) return { error: "disabled" };
+export async function executeDiscovery(searchId: string, category: FormDataEntryValue | null, source: FormDataEntryValue | null) {
+  const provider = source === salvadorProvider.id && extractEnabled() ? salvadorProvider
+    : source === osmProvider.id && osmEnabled() ? osmProvider : null;
+  if (!provider) return { error: "disabled" };
   const db = getDb();
   const [search] = await db.select().from(searches).where(eq(searches.id, searchId));
   if (!search) return { error: "missing" };
@@ -37,6 +42,7 @@ export async function executeDiscovery(searchId: string, category: FormDataEntry
   const parsed = osmFilters.safeParse({ ...saved, category });
   if (!parsed.success) return { error: "filters" };
   const filters = parsed.data;
+  if (provider === salvadorProvider && !coversSalvador(filters)) return { error: "coverage" };
   const reserved = await db.transaction(async tx => {
     await tx.execute(sql`select pg_advisory_xact_lock(7384502)`);
     const stale = new Date(Date.now() - runningTimeout);
@@ -44,19 +50,21 @@ export async function executeDiscovery(searchId: string, category: FormDataEntry
       .where(and(eq(searchRuns.status, "running"), lt(searchRuns.createdAt, stale)));
     const [running] = await tx.select({ id: searchRuns.id }).from(searchRuns).where(eq(searchRuns.status, "running")).limit(1);
     if (running) return { error: "running" };
-    const [recent] = await tx.select({ id: searchRuns.id }).from(searchRuns).where(
-      and(eq(searchRuns.provider, osmProvider.id), gt(searchRuns.createdAt, new Date(Date.now() - 60000))),
-    ).limit(1);
-    if (recent) return { error: "cooldown" };
-    const [used] = await tx.select({ total: count() }).from(searchRuns).where(
-      and(eq(searchRuns.provider, osmProvider.id), gt(searchRuns.createdAt, new Date(Date.now() - 86400000))),
-    );
-    if (used.total >= dailyLimit) return { error: "daily" };
+    if (provider === osmProvider) {
+      const [recent] = await tx.select({ id: searchRuns.id }).from(searchRuns).where(
+        and(eq(searchRuns.provider, provider.id), gt(searchRuns.createdAt, new Date(Date.now() - 60000))),
+      ).limit(1);
+      if (recent) return { error: "cooldown" };
+      const [used] = await tx.select({ total: count() }).from(searchRuns).where(
+        and(eq(searchRuns.provider, provider.id), gt(searchRuns.createdAt, new Date(Date.now() - 86400000))),
+      );
+      if (used.total >= dailyLimit) return { error: "daily" };
+    }
     await tx.delete(discoveryResults).where(sql`${discoveryResults.runId} in (
       select ${searchRuns.id} from ${searchRuns} where ${searchRuns.expiresAt} <= now()
     )`);
     const [run] = await tx.insert(searchRuns).values({
-      searchId, provider: osmProvider.id, filters, expiresAt: new Date(Date.now() + lifetime),
+      searchId, provider: provider.id, filters, expiresAt: new Date(Date.now() + lifetime),
     }).returning({ id: searchRuns.id });
     return { id: run.id };
   });
@@ -65,20 +73,21 @@ export async function executeDiscovery(searchId: string, category: FormDataEntry
   const controller = new AbortController();
   active.set(runId, controller);
   try {
-    const { results, truncated } = await osmProvider.search(filters, controller.signal);
+    const { results, truncated, snapshotDate } = await provider.search(filters, controller.signal);
     await db.transaction(async tx => {
       const [updated] = await tx.update(searchRuns).set({
         status: "completed", finishedAt: new Date(), resultCount: results.length, truncated,
+        filters: { ...filters, snapshotDate },
       }).where(and(eq(searchRuns.id, runId), eq(searchRuns.status, "running"))).returning({ id: searchRuns.id });
       if (updated && results.length) await tx.insert(discoveryResults).values(results.map(result => ({ ...result, runId })));
     });
   } catch (error) {
     let code = "invalid";
-    if (error instanceof ProviderError && ["busy", "upstream", "partial"].includes(error.code)) code = error.code;
+    if (error instanceof ProviderError && ["busy", "upstream", "partial", "coverage", "extract"].includes(error.code)) code = error.code;
     else if (error instanceof Error && error.name === "TimeoutError") code = "timeout";
     await db.update(searchRuns).set({ status: "failed", finishedAt: new Date(), error: code })
       .where(and(eq(searchRuns.id, runId), eq(searchRuns.status, "running")));
-    if (!controller.signal.aborted) console.warn({ event: "discovery.failed", provider: osmProvider.id, code, runId });
+    if (!controller.signal.aborted) console.warn({ event: "discovery.failed", provider: provider.id, code, runId });
   } finally {
     active.delete(runId);
   }

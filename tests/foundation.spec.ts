@@ -53,6 +53,7 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await page.getByRole("button", { name: "Salvar pesquisa" }).click();
   await page.getByRole("link", { name: "Oficinas em Salvador" }).click();
   await expect(page.getByLabel("Bairro ou região")).toHaveValue("Pituaçu");
+  await page.getByLabel("Fonte").selectOption("openstreetmap");
   await page.getByLabel("Categoria OpenStreetMap").selectOption("cafe");
   await page.getByRole("button", { name: "Executar pesquisa" }).click();
   await expect(page.getByRole("heading", { name: "Resultados da pesquisa" })).toBeVisible();
@@ -73,6 +74,29 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await expect(page).toHaveURL(/\/entrar$/);
   await page.goto("/oportunidades");
   await expect(page).toHaveURL(/\/entrar$/);
+});
+
+test("consulta cafeterias no extrato real de Salvador", async ({ page }) => {
+  test.skip(process.env.PLAYWRIGHT_REAL_EXTRACT !== "true", "Requer o extrato local da Geofabrik.");
+  await page.goto("/entrar");
+  await page.getByLabel("E-mail").fill("admin@example.test");
+  await page.getByLabel("Senha").fill("senha-apenas-do-teste");
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page.getByRole("heading", { name: "Visão geral" })).toBeVisible();
+  await page.goto("/pesquisas/nova");
+  await page.getByLabel("Nome da pesquisa").fill("Cafeterias no extrato de Salvador");
+  await page.getByLabel("Estado").fill("BA");
+  await page.getByLabel("Cidade").fill("Salvador");
+  await page.getByLabel("Segmento").fill("Cafeterias");
+  await page.getByLabel("Limite de resultados").fill("5");
+  await page.getByRole("button", { name: "Salvar pesquisa" }).click();
+  await page.getByRole("link", { name: "Cafeterias no extrato de Salvador" }).click();
+  await page.getByLabel("Fonte").selectOption("openstreetmap-geofabrik");
+  await page.getByLabel("Categoria OpenStreetMap").selectOption("cafe");
+  await page.getByRole("button", { name: "Executar pesquisa" }).click();
+  await expect(page.getByText("Concluída", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Extrato Geofabrik de Salvador · versão de/)).toBeVisible();
+  await expect(page.getByRole("table").getByRole("row")).toHaveCount(6);
 });
 
 test("limita tentativas de login com contagem persistente", async ({ request }) => {

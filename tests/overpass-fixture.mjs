@@ -10,7 +10,7 @@ globalThis.fetch = (input, init) => {
   const elements = Array.from({ length: 21 }, (_, index) => ({
     id: index + 1,
     type: "node",
-    tags: { name: `Cafeteria de teste ${String(index + 1).padStart(2, "0")}`, "addr:suburb": "Pituaçu" },
+    tags: { name: `Cafeteria de teste ${String(index + 1).padStart(2, "0")}`, amenity: "cafe", "addr:suburb": "Pituaçu" },
   }));
   return Promise.resolve(Response.json({ elements }));
 };

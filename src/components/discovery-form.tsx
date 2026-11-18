@@ -3,9 +3,10 @@
 import { startTransition, useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-export function DiscoveryForm({ action, categories }: {
+export function DiscoveryForm({ action, categories, sources }: {
   action: (state: string, form: FormData) => Promise<string>;
   categories: { value: string; label: string }[];
+  sources: { value: string; label: string }[];
 }) {
   const [message, dispatch, pending] = useActionState(action, "");
   const router = useRouter();
@@ -19,6 +20,9 @@ export function DiscoveryForm({ action, categories }: {
     const data = new FormData(event.currentTarget);
     startTransition(() => dispatch(data));
   }}>
+    <label>Fonte<select name="provider" defaultValue={sources[0]?.value} required>
+      {sources.map(source => <option key={source.value} value={source.value}>{source.label}</option>)}
+    </select></label>
     <label>Categoria OpenStreetMap<select name="category" defaultValue="" required>
       <option value="" disabled>Selecione uma categoria</option>
       {categories.map(category => <option key={category.value} value={category.value}>{category.label}</option>)}
