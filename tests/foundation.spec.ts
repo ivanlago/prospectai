@@ -60,7 +60,17 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await expect(page.getByText("Cafeteria de teste 01", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Próxima" }).click();
   await expect(page.getByText("Cafeteria de teste 21", { exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Voltar às pesquisas" }).click();
+  await page.getByRole("link", { name: "Revisar", exact: true }).click();
+  await page.getByLabel("Presença digital").selectOption("website_not_found");
+  await page.getByLabel("Evidência da revisão").fill("Consulta manual pelo nome e pela cidade.");
+  await page.getByRole("checkbox", { name: "Informações comerciais confirmadas" }).check();
+  await page.getByRole("button", { name: "Salvar revisão" }).click();
+  await expect(page.getByText("50/100 · Qualificada")).toBeVisible();
+  await page.getByRole("checkbox", { name: "Confirmo o uso dos dados de origem sob ODbL." }).check();
+  await page.getByRole("button", { name: "Importar para o CRM" }).click();
+  await expect(page.getByRole("link", { name: "Registro de origem" })).toBeVisible();
+  await page.goto("/pesquisas");
+  await page.getByRole("link", { name: "Oficinas em Salvador" }).click();
   await expect(page.getByText("Concluída", { exact: true })).toBeVisible();
   page.once("dialog", dialog => dialog.accept());
   await page.getByRole("button", { name: "Excluir pesquisa" }).click();

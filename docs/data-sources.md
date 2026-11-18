@@ -10,6 +10,8 @@ Os filtros de palavra-chave, bairro e site usam os campos retornados e podem dei
 
 Resultados ficam visíveis por sete dias. A próxima execução aceita remove do banco os resultados que já expiraram. O histórico preserva status, parâmetros e contagens. Para uma operação sempre ativa, programe limpeza regular de resultados vencidos e escolha uma instância própria ou contratada conforme volume e disponibilidade desejada.
 
+A revisão de presença digital pertence ao resultado temporário e segue sua expiração. Ao importar manualmente uma oportunidade qualificada, o administrador confirma o uso sob ODbL. O CRM guarda a referência OSM, a fonte da execução, uma cópia da evidência, o score e a data da revisão. A exclusão da empresa remove esse registro de origem. Registre apenas observações comerciais necessárias.
+
 Referências: [licença e atribuição OSM](https://www.openstreetmap.org/copyright) e [termos da instância Private.coffee](https://overpass.private.coffee/).
 
 ### Extrato local de Salvador

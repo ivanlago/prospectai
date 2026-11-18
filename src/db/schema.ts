@@ -108,6 +108,27 @@ export const discoveryResults = pgTable("discovery_results", {
   identityKey: text("identity_key").notNull(),
 }, table => [uniqueIndex().on(table.runId, table.reference), index().on(table.runId, table.name)]);
 
+export const websiteReviews = pgTable("website_reviews", {
+  resultId: uuid("result_id").primaryKey().references(() => discoveryResults.id, { onDelete: "cascade" }),
+  actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+  presence: text().notNull(),
+  evidence: text().notNull(),
+  website: text().notNull(),
+  score: integer().notNull(),
+  breakdown: jsonb().notNull(),
+  qualified: boolean().notNull(),
+  reviewedAt: date("reviewed_at").notNull().defaultNow(),
+});
+
+export const companySources = pgTable("company_sources", {
+  companyId: uuid("company_id").primaryKey().references(() => companies.id, { onDelete: "cascade" }),
+  provider: text().notNull(),
+  reference: text().notNull(),
+  permission: text().notNull(),
+  review: jsonb().notNull(),
+  createdAt: created(),
+}, table => [uniqueIndex().on(table.provider, table.reference)]);
+
 export const activities = pgTable("activities", {
   id: uuid().primaryKey().defaultRandom(),
   companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),

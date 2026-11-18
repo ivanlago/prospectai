@@ -45,6 +45,10 @@ function findState(value: string) {
   return stateOptions.find(([code, name]) => [normalize(code), normalize(name)].includes(normalize(value)));
 }
 
+export function stateLabel(value: string) {
+  return findState(value)?.[1] ?? value;
+}
+
 const scanLimit = 251;
 
 export function overpassQuery(input: DiscoveryFilters) {

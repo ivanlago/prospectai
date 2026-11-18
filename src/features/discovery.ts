@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gt, lt, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { companies, discoveryResults, searchRuns, searches } from "@/db/schema";
+import { companies, companySources, discoveryResults, searchRuns, searches, websiteReviews } from "@/db/schema";
 import { searchForm } from "@/domain";
 import { osmEnabled, osmFilters, osmProvider, normalize, ProviderError } from "@/integrations/discovery/overpass";
 import { coversSalvador, extractEnabled, salvadorProvider } from "@/integrations/discovery/salvador-extract";
@@ -109,8 +109,11 @@ export function runResults(runId: string, page: number) {
   return getDb().select({
     id: discoveryResults.id, name: discoveryResults.name, website: discoveryResults.website,
     district: discoveryResults.district, reference: discoveryResults.reference, duplicateId: companies.id,
+    importedId: companySources.companyId, score: websiteReviews.score, qualified: websiteReviews.qualified,
   }).from(discoveryResults).innerJoin(searchRuns, eq(searchRuns.id, discoveryResults.runId))
     .leftJoin(companies, eq(companies.identityKey, discoveryResults.identityKey))
+    .leftJoin(websiteReviews, eq(websiteReviews.resultId, discoveryResults.id))
+    .leftJoin(companySources, and(eq(companySources.provider, "openstreetmap"), eq(companySources.reference, discoveryResults.reference)))
     .where(and(eq(discoveryResults.runId, runId), gt(searchRuns.expiresAt, new Date())))
     .orderBy(discoveryResults.name, discoveryResults.id).offset((page - 1) * 20).limit(21);
 }

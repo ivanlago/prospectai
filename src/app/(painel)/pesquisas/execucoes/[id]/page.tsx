@@ -48,10 +48,11 @@ export default async function RunPage({ params, searchParams }: {
       {execution.truncated && <p role="status">A consulta alcançou o limite de leitura ou de exibição. Outros resultados podem existir.</p>}
       {execution.status === "completed" && (expired ? <Empty>Os resultados dessa execução expiraram.</Empty> : rows.length === 0 ?
         <Empty>Nenhuma empresa encontrada nesta página.</Empty> : <div className="table-scroll">
-          <table><thead><tr><th>Empresa</th><th>Bairro</th><th>Site na fonte</th><th>CRM</th><th>Origem</th></tr></thead>
+          <table><thead><tr><th>Empresa</th><th>Bairro</th><th>Site na fonte</th><th>Revisão</th><th>CRM</th><th>Origem</th></tr></thead>
             <tbody>{rows.slice(0, 20).map(row => <tr key={row.id}>
-              <td>{row.name}</td><td>{row.district || "—"}</td><td>{row.website || "Sem URL disponível"}</td>
-              <td>{row.duplicateId ? <Link href={`/empresas/${row.duplicateId}`}>Possível duplicidade</Link> : "—"}</td>
+              <td><Link href={`/pesquisas/revisao/${row.id}`}>{row.name}</Link></td><td>{row.district || "—"}</td><td>{row.website || "Sem URL disponível"}</td>
+              <td><Link href={`/pesquisas/revisao/${row.id}`}>{row.score === null ? "Revisar" : `${row.qualified ? "Qualificada" : "Revisada"} · ${row.score}/100`}</Link></td>
+              <td>{row.importedId ? <Link href={`/empresas/${row.importedId}`}>Importada</Link> : row.duplicateId ? <Link href={`/empresas/${row.duplicateId}`}>Possível duplicidade</Link> : "—"}</td>
               <td><a href={`https://www.openstreetmap.org/${row.reference}`} target="_blank" rel="noreferrer">{row.reference}</a></td>
             </tr>)}</tbody>
           </table>

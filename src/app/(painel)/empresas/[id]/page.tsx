@@ -1,9 +1,15 @@
 import { notFound } from "next/navigation";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { requireAdmin } from "@/auth";
 import { PageHeader, Empty } from "@/components/controls";
 import { CompanyForm } from "@/components/company-form";
 import { ActionForm, DeleteForm } from "@/components/forms";
 import { StageForm } from "@/components/stage-form";
+import { OsmCredit } from "@/components/osm-credit";
+import { getDb } from "@/db";
+import { companySources } from "@/db/schema";
+import { presenceLabels } from "@/features/qualification";
 import { formatDate, id, stageNames, stages } from "@/domain";
 import { companyActivity, getCompany } from "@/features/companies";
 import { removeCompany, saveNote } from "../../actions";
@@ -16,7 +22,8 @@ export default async function EditCompany({ params, searchParams }: {
   if (!companyId) notFound();
   const company = await getCompany(companyId);
   if (!company) notFound();
-  const history = await companyActivity(company.id);
+  const [history, [source]] = await Promise.all([companyActivity(company.id), getDb().select().from(companySources).where(eq(companySources.companyId, companyId))]);
+  const review = z.object({ score: z.number(), evidence: z.string(), presence: z.enum(Object.keys(presenceLabels) as [keyof typeof presenceLabels, ...(keyof typeof presenceLabels)[]]) }).safeParse(source?.review).data;
   const saved = (await searchParams).salvo === "1";
 
   return <>
@@ -27,6 +34,11 @@ export default async function EditCompany({ params, searchParams }: {
         <DeleteForm action={removeCompany.bind(null, company.id)} label="Excluir empresa" />
       </section>
       <section className="panel padded stack"><h2>CRM</h2>
+        {source && <div className="stack">
+          <p><a href={`https://www.openstreetmap.org/${source.reference}`} target="_blank" rel="noreferrer">Registro de origem</a> · {source.permission}</p>
+          <OsmCredit />
+          {review && <><p>{presenceLabels[review.presence]} · {review.score}/100</p><p>{review.evidence}</p></>}
+        </div>}
         <StageForm id={company.id} stage={company.stage} />
         <ActionForm action={saveNote.bind(null, company.id)} label="Adicionar nota">
           <label>Nova nota<textarea name="note" rows={3} required maxLength={4000} /></label>
