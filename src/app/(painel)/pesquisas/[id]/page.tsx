@@ -12,7 +12,7 @@ import { searches } from "@/db/schema";
 import { formatDate, id, searchForm } from "@/domain";
 import { getRuns } from "@/features/discovery";
 import { categoryOptions, osmEnabled, osmProvider } from "@/integrations/discovery/overpass";
-import { coversSalvador, extractEnabled, salvadorProvider } from "@/integrations/discovery/salvador-extract";
+import { extractMunicipality, extractEnabled, extractProvider } from "@/integrations/discovery/municipal-extract";
 import { removeSearch } from "../../actions";
 import { cancelRun, runSearch } from "../discovery-actions";
 
@@ -28,12 +28,13 @@ export default async function EditSearch({ params, searchParams }: { params: Pro
   const labels = { running: "Em andamento", completed: "Concluída", failed: "Falhou", cancelled: "Cancelada" };
   const searchUrl = `/pesquisas/${row.id}`;
   const sources = [];
-  if (saved && coversSalvador(saved) && extractEnabled()) sources.push({ value: salvadorProvider.id, label: "Extrato de Salvador · Geofabrik" });
+  const municipality = saved && extractMunicipality(saved);
+  if (municipality && extractEnabled()) sources.push({ value: extractProvider.id, label: `Extrato de ${municipality.name} · Geofabrik` });
   if (osmEnabled()) sources.push({ value: osmProvider.id, label: "OpenStreetMap · Overpass" });
   return <><PageHeader title={row.name} description="Edite os critérios salvos para esta pesquisa." />
     <section className="panel padded stack">
       <h2>Descobrir empresas</h2>
-      <p>Até 50 resultados por execução. O Overpass permite cinco chamadas a cada 24 horas. O extrato de Salvador consulta os dados locais.</p>
+      <p>Até 50 resultados por execução. O Overpass permite cinco chamadas a cada 24 horas. Os extratos municipais consultam dados locais.</p>
       <p>Deixe avaliação, mínimo de avaliações e raio vazios. O filtro de bairro depende do endereço disponível na fonte.</p>
       <OsmCredit />
       {sources.length ? <DiscoveryForm action={runSearch.bind(null, row.id)} categories={categoryOptions} sources={sources} /> :

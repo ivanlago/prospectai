@@ -31,7 +31,7 @@ Os testes usam um PostgreSQL embarcado (PGlite) descartável, sem conexão com a
 
 - Em **Empresas**, cadastre nome, segmento e localização. Site e contato são opcionais. A busca aceita nome, cidade e segmento, com filtro por etapa.
 - Em **Oportunidades**, mova empresas entre as onze etapas. Abra uma empresa para ver as alterações recentes e registrar uma nota.
-- Em **Pesquisas**, salve os critérios e escolha uma fonte de descoberta. Para Salvador, Bahia, a opção **Extrato de Salvador · Geofabrik** lê o [recorte local](docs/data-sources.md#extrato-local-de-salvador). O piloto Overpass pode ser habilitado com `ENABLE_OSM_PILOT=true`. Use Brasil, UF por nome ou sigla e limite de até 50. Deixe avaliação, quantidade de avaliações e raio vazios. Os resultados ficam em uma área separada do CRM.
+- Em **Pesquisas**, salve os critérios e escolha uma fonte de descoberta. Para Salvador, Lauro de Freitas e Camaçari, escolha o [extrato municipal da Geofabrik](docs/data-sources.md#extratos-municipais). O piloto Overpass pode ser habilitado com `ENABLE_OSM_PILOT=true`. Use Brasil, UF por nome ou sigla e limite de até 50. Deixe avaliação, quantidade de avaliações e raio vazios. Os resultados ficam em uma área separada do CRM.
 - Em **Visão geral**, compare o funil e as contagens por período de cadastro. A conversão usa a etapa atual das empresas cadastradas no período.
 
 ### Verificar e qualificar empresas descobertas

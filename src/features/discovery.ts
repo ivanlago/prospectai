@@ -3,7 +3,7 @@ import { getDb } from "@/db";
 import { companies, companySources, discoveryResults, searchRuns, searches, websiteReviews } from "@/db/schema";
 import { searchForm } from "@/domain";
 import { osmEnabled, osmFilters, osmProvider, normalize, ProviderError } from "@/integrations/discovery/overpass";
-import { coversSalvador, extractEnabled, salvadorProvider } from "@/integrations/discovery/salvador-extract";
+import { extractMunicipality, extractEnabled, extractProvider } from "@/integrations/discovery/municipal-extract";
 
 const lifetime = 7 * 86400000;
 const dailyLimit = 5;
@@ -23,12 +23,12 @@ export const discoveryNotices: Record<string, string> = {
   partial: "O provedor interrompeu a consulta e retornou dados incompletos.",
   timeout: "A execução excedeu o tempo permitido.",
   invalid: "O provedor retornou uma resposta inválida ou acima do limite.",
-  coverage: "O extrato local cobre apenas o município de Salvador, Bahia.",
-  extract: "O extrato local de Salvador está indisponível ou inválido.",
+  coverage: "O extrato local cobre Salvador, Lauro de Freitas e Camaçari, na Bahia.",
+  extract: "O extrato municipal está indisponível ou inválido.",
 };
 
 export async function executeDiscovery(searchId: string, category: FormDataEntryValue | null, source: FormDataEntryValue | null) {
-  const provider = source === salvadorProvider.id && extractEnabled() ? salvadorProvider
+  const provider = source === extractProvider.id && extractEnabled() ? extractProvider
     : source === osmProvider.id && osmEnabled() ? osmProvider : null;
   if (!provider) return { error: "disabled" };
   const db = getDb();
@@ -42,7 +42,7 @@ export async function executeDiscovery(searchId: string, category: FormDataEntry
   const parsed = osmFilters.safeParse({ ...saved, category });
   if (!parsed.success) return { error: "filters" };
   const filters = parsed.data;
-  if (provider === salvadorProvider && !coversSalvador(filters)) return { error: "coverage" };
+  if (provider === extractProvider && !extractMunicipality(filters)) return { error: "coverage" };
   const reserved = await db.transaction(async tx => {
     await tx.execute(sql`select pg_advisory_xact_lock(7384502)`);
     const stale = new Date(Date.now() - runningTimeout);

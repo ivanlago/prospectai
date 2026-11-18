@@ -1,4 +1,4 @@
-"""Create the local Salvador POI index from a Geofabrik PBF and an IBGE municipal boundary."""
+"""Create a local municipal POI index from a Geofabrik PBF and an IBGE municipal boundary."""
 
 import argparse
 from datetime import date
