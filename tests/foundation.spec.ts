@@ -33,6 +33,21 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await page.getByLabel("Nome", { exact: true }).fill("Oficina Central");
   await page.getByRole("button", { name: "Salvar empresa" }).click();
   await expect(page.getByRole("heading", { name: "Oficina Central" })).toBeVisible();
+  await page.getByRole("link", { name: "Gerar demonstração de site" }).click();
+  await expect(page.getByLabel("Template")).toHaveValue("auto");
+  await page.getByLabel("Serviços confirmados").fill("Manutenção preventiva");
+  await page.getByLabel("E-mail comercial autorizado").fill("contato@example.test");
+  await page.getByRole("checkbox", { name: /autorizo o envio/ }).check();
+  await page.getByRole("button", { name: "Gerar demonstração" }).click();
+  await expect(page.getByRole("heading", { name: "Cuidado em cada detalhe" })).toBeVisible();
+  await expect(page.getByText("Manutenção preventiva", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "contato@example.test" })).toHaveAttribute("href", "mailto:contato@example.test");
+  await expect(page.getByText("Prévia demonstrativa independente. Não representa um site oficial da empresa.")).toBeVisible();
+  const demoURL = page.url();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Cuidado em cada detalhe" })).toBeVisible();
+  await page.getByRole("link", { name: "Ver histórico" }).click();
+  await expect(page.getByRole("cell", { name: "300 / 110" })).toBeVisible();
   await page.goto("/empresas?q=Central&etapa=qualified");
   await expect(page.getByRole("link", { name: "Oficina Central" })).toBeVisible();
   await page.goto("/?periodo=7");
@@ -83,6 +98,8 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await page.getByRole("button", { name: "Sair" }).click();
   await expect(page).toHaveURL(/\/entrar$/);
   await page.goto("/oportunidades");
+  await expect(page).toHaveURL(/\/entrar$/);
+  await page.goto(demoURL);
   await expect(page).toHaveURL(/\/entrar$/);
 });
 

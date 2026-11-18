@@ -21,6 +21,9 @@ const env = {
   AUTH_IP_HEADER: "",
   ENABLE_OSM_PILOT: "true",
   ENABLE_OSM_SALVADOR_EXTRACT: process.env.PLAYWRIGHT_REAL_EXTRACT === "true" ? "true" : "false",
+  GEMINI_API_KEY: "chave-ficticia-apenas-do-teste",
+  AI_DAILY_LIMIT: "5",
+  AI_MONTHLY_BUDGET_USD: "5",
 };
 
 function run(script, ...args) {

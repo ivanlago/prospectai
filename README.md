@@ -40,4 +40,12 @@ Nos resultados, clique no nome de uma empresa. O painel classifica a URL registr
 
 Marque os sinais observados, ajuste os pesos e salve. O painel exibe o score de 0 a 100, sua composição e a confiança. Uma URL ausente na fonte tem significado diferente de um site que você procurou e não localizou. A importação fica disponível após atingir o mínimo de uma revisão conclusiva. Confirme a licença de origem para criar a empresa no CRM.
 
+### Gerar demonstrações
+
+Configure `GEMINI_API_KEY` no servidor e reinicie a aplicação. O Gemini 3.1 Flash-Lite recebe nome, segmento e serviços explicitamente confirmados. Confira os termos e a política de uso de dados do plano antes de autorizar o envio. Os demais dados do CRM ficam fora da requisição.
+
+Abra uma empresa e selecione **Gerar demonstração de site**. Escolha um dos cinco templates, informe os serviços confirmados e autorize o envio ao provedor. Confira a prévia privada e o histórico em **Sites gerados**. Campos sem confirmação são sinalizados na prévia. Leia o texto gerado antes de usá-lo em uma comunicação externa.
+
+`AI_DAILY_LIMIT` e `AI_MONTHLY_BUDGET_USD` controlam as tentativas por dia e o orçamento estimado do mês em America/Bahia. Os padrões são cinco tentativas por dia e US$ 5 por mês. Cada tentativa reserva um teto estimado antes da chamada e registra os tokens de entrada e saída quando disponíveis. O custo é uma estimativa em USD na unidade do provedor, incluindo tokens de raciocínio na saída. Consulte a [tabela oficial do Gemini](https://aistudio.google.com/docs/pricing#gemini-3.1-flash-lite). Os testes de navegador usam resposta controlada de IA.
+
 Leia a documentação de [arquitetura](docs/architecture.md), [banco](docs/database.md), [fontes](docs/data-sources.md), [segurança](docs/security.md) e [implantação](docs/deployment.md).

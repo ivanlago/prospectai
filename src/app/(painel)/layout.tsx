@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, LayoutDashboard, ScanLine, Search, PanelsTopLeft } from "lucide-react";
+import { Building2, LayoutDashboard, ScanLine, Search, PanelsTopLeft, Monitor } from "lucide-react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAuth, requireAdmin } from "@/auth";
@@ -10,6 +10,7 @@ const links = [
   { href: "/pesquisas", label: "Pesquisas", icon: Search },
   { href: "/empresas", label: "Empresas", icon: Building2 },
   { href: "/oportunidades", label: "Oportunidades", icon: PanelsTopLeft },
+  { href: "/sites", label: "Sites gerados", icon: Monitor },
 ];
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {

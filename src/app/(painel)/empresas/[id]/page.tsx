@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdmin } from "@/auth";
@@ -34,6 +35,7 @@ export default async function EditCompany({ params, searchParams }: {
         <DeleteForm action={removeCompany.bind(null, company.id)} label="Excluir empresa" />
       </section>
       <section className="panel padded stack"><h2>CRM</h2>
+        <div><Link className="button primary" href={`/sites/novo/${company.id}`}>Gerar demonstração de site</Link></div>
         {source && <div className="stack">
           <p><a href={`https://www.openstreetmap.org/${source.reference}`} target="_blank" rel="noreferrer">Registro de origem</a> · {source.permission}</p>
           <OsmCredit />

@@ -1,6 +1,6 @@
 import { and, count, desc, eq, ilike, or, type SQL } from "drizzle-orm";
 import { getDb } from "@/db";
-import { activities, auditLogs, companies } from "@/db/schema";
+import { activities, auditLogs, companies, websiteProjects } from "@/db/schema";
 import { companyKey, companyForm, stages } from "@/domain";
 import type { z } from "zod";
 
@@ -39,6 +39,8 @@ export async function saveCompany(actorId: string, values: z.infer<typeof compan
 
 export function deleteCompany(actorId: string, id: string) {
   return getDb().transaction(async tx => {
+    await tx.select({ id: companies.id }).from(companies).where(eq(companies.id, id)).for("update");
+    await tx.update(websiteProjects).set({ content: null, status: "failed", error: "removed", finishedAt: new Date() }).where(eq(websiteProjects.companyId, id));
     const [deleted] = await tx.delete(companies).where(eq(companies.id, id)).returning({ id: companies.id });
     if (deleted) await tx.insert(auditLogs).values({ entityId: deleted.id, actorId, event: "company.deleted" });
   });
