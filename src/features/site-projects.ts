@@ -2,7 +2,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { companies, websiteProjects } from "@/db/schema";
-import { estimateMicros, gemini, reservedMicros } from "@/integrations/ai/gemini";
+import { siteAiProvider } from "@/integrations/ai/provider";
 import { assembleSite, type generationForm } from "./site-content";
 
 const limits = z.object({
@@ -15,15 +15,16 @@ export function generationConfig() {
 }
 
 export const generationMessages: Record<string, string> = {
-  disabled: "Configure a chave Gemini e os limites de geração no servidor.",
+  disabled: "Configure a chave do provedor de IA e os limites de geração no servidor.",
+  "provider-changed": "O provedor de IA mudou. Atualize a página e confirme o envio novamente.",
   missing: "Empresa indisponível.",
   daily: "Limite diário de tentativas já atingido.",
   budget: "Saldo mensal insuficiente para iniciar outra tentativa.",
   running: "Já existe uma geração em andamento.",
-  quota: "O Gemini retornou um limite de uso. Confira a cota da conta.",
-  auth: "O Gemini recusou a credencial configurada.",
+  quota: "O provedor retornou um limite de uso. Confira a cota da conta.",
+  auth: "O provedor recusou a credencial configurada.",
   invalid: "O conteúdo retornado não passou pela validação.",
-  provider: "A chamada ao Gemini falhou. Tente novamente mais tarde.",
+  provider: "A chamada ao provedor de IA falhou. Tente novamente mais tarde.",
   timeout: "A geração excedeu o tempo limite.",
   removed: "Empresa excluída.",
 };
@@ -36,10 +37,12 @@ export function listSites() {
     .orderBy(desc(websiteProjects.createdAt)).limit(50);
 }
 
-export async function generateSite(companyId: string, form: z.infer<typeof generationForm>) {
-  const adapter = gemini();
+export async function generateSite(companyId: string, form: z.infer<typeof generationForm>, authorizedProvider: string) {
+  const adapter = siteAiProvider();
   const config = generationConfig();
   if (!adapter || !config) return { error: "disabled" };
+  if (adapter.id !== authorizedProvider) return { error: "provider-changed" };
+  const { reservedMicros } = adapter;
   const db = getDb();
   const prepared = await db.transaction(async tx => {
     await tx.execute(sql`select pg_advisory_xact_lock(7384503)`);
@@ -69,7 +72,7 @@ export async function generateSite(companyId: string, form: z.infer<typeof gener
     response = { error: error instanceof Error && error.name === "TimeoutError" ? "timeout" : "provider" };
   }
   const costMicros = response.inputTokens === undefined || response.outputTokens === undefined
-    ? reservedMicros : estimateMicros(response.inputTokens, response.outputTokens);
+    ? reservedMicros : adapter.estimateMicros(response.inputTokens, response.outputTokens);
   const content = response.copy
     ? assembleSite({ ...company, address: form.includeAddress ? company.address : "", email: form.email, whatsapp: form.whatsapp }, form.serviceLines, response.copy) : null;
   await db.update(websiteProjects).set({

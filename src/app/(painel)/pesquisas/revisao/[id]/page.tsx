@@ -62,6 +62,10 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
         {review && breakdown ? <>
           <p><strong>{review.score}/100 · {review.qualified ? "Qualificada" : "Pendente de qualificação"}</strong></p>
           <p>Confiança {breakdown.confidence} · {formatDate(review.reviewedAt)} · mínimo {breakdown.threshold}</p>
+          {!review.qualified && review.score >= breakdown.threshold && <p className="feedback">
+            A pontuação mínima foi atingida. Para liberar a importação, registre a situação constatada na revisão.
+            Selecione site próprio encontrado, somente rede social localizada ou site não localizado após a busca, conforme a evidência.
+          </p>}
           <ul className="history">{breakdown.factors.map(factor => <li key={factor.label}>{factor.label} · {factor.points} ponto(s)</li>)}</ul>
           <p>A pontuação organiza a fila de prospecção.</p>
           {review.qualified && <ActionForm action={importReview.bind(null, result.id)} label="Importar para o CRM">

@@ -6,7 +6,7 @@ import { id } from "@/domain";
 import { getCompany } from "@/features/companies";
 import { suggestedTemplate, templates } from "@/features/site-content";
 import { generationConfig } from "@/features/site-projects";
-import { gemini, reservedMicros } from "@/integrations/ai/gemini";
+import { siteAiProvider } from "@/integrations/ai/provider";
 import { buildSite } from "../../actions";
 
 export const metadata = { title: "Gerar demonstração" };
@@ -18,16 +18,16 @@ export default async function NewSite({ params }: { params: Promise<{ id: string
   const company = await getCompany(companyId);
   if (!company) notFound();
   const config = generationConfig();
-  const adapter = gemini();
+  const adapter = siteAiProvider();
   const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD", maximumFractionDigits: 6 });
 
   return <>
     <PageHeader title="Gerar demonstração" description={company.name} href={`/empresas/${company.id}`} action="Voltar à empresa" />
     <section className="panel padded stack">
       {adapter && config ? <>
-        <p>Gemini · {config.daily} tentativa(s) por dia · orçamento mensal estimado de {money.format(config.budget)}.</p>
-        <p>A tentativa reserva {money.format(reservedMicros / 1000000)}. O consumo é recalculado quando o provedor informa os tokens.</p>
-        <ActionForm action={buildSite.bind(null, company.id)} label="Gerar demonstração">
+        <p>{adapter.label} · {config.daily} tentativa(s) por dia · orçamento mensal estimado de {money.format(config.budget)}.</p>
+        <p>A tentativa reserva {money.format(adapter.reservedMicros / 1000000)} no orçamento interno, pela tarifa padrão. A cobrança efetiva depende do plano.</p>
+        <ActionForm action={buildSite.bind(null, company.id, adapter.id)} label="Gerar demonstração">
           <label>Template<select name="template" defaultValue={suggestedTemplate(company.segment)}>
             {Object.entries(templates).map(([key, template]) => <option key={key} value={key}>{template.label}</option>)}
           </select></label>
@@ -37,9 +37,9 @@ export default async function NewSite({ params }: { params: Promise<{ id: string
             <label>E-mail comercial autorizado<input name="email" type="email" maxLength={254} /></label>
             <label>WhatsApp comercial autorizado<input name="whatsapp" type="tel" inputMode="numeric" maxLength={15} placeholder="Somente dígitos, incluindo país e DDD" pattern="[1-9][0-9]{9,14}" /></label>
           </div>
-          <label className="toolbar"><input type="checkbox" name="authorize" required />Confirmo o nome, segmento e serviços comerciais acima e autorizo o envio desses dados ao Gemini.</label>
+          <label className="toolbar"><input type="checkbox" name="authorize" required />Confirmo o nome, segmento e serviços comerciais acima e autorizo o envio desses dados ao {adapter.label}.</label>
         </ActionForm>
-      </> : <p role="status">A geração aguarda a configuração da chave Gemini e dos limites no servidor.</p>}
+      </> : <p role="status">A geração aguarda a configuração do provedor de IA e dos limites no servidor.</p>}
     </section>
   </>;
 }
