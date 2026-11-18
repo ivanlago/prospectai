@@ -44,6 +44,17 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await expect(page.getByRole("link", { name: "contato@example.test" })).toHaveAttribute("href", "mailto:contato@example.test");
   await expect(page.getByText("Prévia demonstrativa independente. Não representa um site oficial da empresa.")).toBeVisible();
   const demoURL = page.url();
+  await page.getByRole("link", { name: "Comparar layouts" }).click();
+  await expect(page.getByRole("heading", { name: "Cuidado em cada detalhe" })).toHaveCount(2);
+  await expect(page.getByRole("region", { name: "Clínica redesenhada" }).getByText("Manutenção preventiva")).toBeVisible();
+  await page.getByRole("link", { name: "Clínica redesenhada", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Cuidado em cada detalhe" })).toHaveCount(1);
+  await expect(page.getByRole("link", { name: "Enviar e-mail" })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole("article")).toBeVisible();
+  expect(await page.getByRole("article").evaluate(element => element.scrollWidth <= element.clientWidth + 2)).toBe(true);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto(demoURL);
   await page.reload();
   await expect(page.getByRole("heading", { name: "Cuidado em cada detalhe" })).toBeVisible();
   await page.getByRole("link", { name: "Ver histórico" }).click();
