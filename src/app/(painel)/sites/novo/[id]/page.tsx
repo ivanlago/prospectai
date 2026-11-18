@@ -19,14 +19,15 @@ export default async function NewSite({ params }: { params: Promise<{ id: string
   if (!company) notFound();
   const config = generationConfig();
   const adapter = siteAiProvider();
+  const showBudget = adapter?.id !== "groq" || process.env.GROQ_PAID_PLAN === "true";
   const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD", maximumFractionDigits: 6 });
 
   return <>
     <PageHeader title="Gerar demonstração" description={company.name} href={`/empresas/${company.id}`} action="Voltar à empresa" />
     <section className="panel padded stack">
       {adapter && config ? <>
-        <p>{adapter.label} · {config.daily} tentativa(s) por dia · orçamento mensal estimado de {money.format(config.budget)}.</p>
-        <p>A tentativa reserva {money.format(adapter.reservedMicros / 1000000)} no orçamento interno, pela tarifa padrão. A cobrança efetiva depende do plano.</p>
+        <p>{adapter.label} · {config.daily} tentativa(s) por dia{showBudget && <> · orçamento mensal estimado de {money.format(config.budget)}</>}.</p>
+        {showBudget && <p>A tentativa reserva {money.format(adapter.reservedMicros / 1000000)} no orçamento interno, pela tarifa padrão. A cobrança efetiva depende do plano.</p>}
         <ActionForm action={buildSite.bind(null, company.id, adapter.id)} label="Gerar demonstração">
           <label>Template<select name="template" defaultValue={suggestedTemplate(company.segment)}>
             {Object.entries(templates).map(([key, template]) => <option key={key} value={key}>{template.label}</option>)}
