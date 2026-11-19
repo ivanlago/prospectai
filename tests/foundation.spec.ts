@@ -78,10 +78,30 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await expect(editorial.getByRole("img", { name: "Foto fornecida para Oficina Central" })).toBeVisible();
   await expect(editorial.getByRole("link", { name: "agenda@example.test" })).toHaveAttribute("href", "mailto:agenda@example.test");
   await page.getByRole("link", { name: "Beleza editorial" }).click();
+  await expect(page).toHaveURL(/\?layout=editorial$/);
   await page.setViewportSize({ width: 390, height: 844 });
   const beauty = page.getByRole("article");
   await expect(beauty).toBeVisible();
   expect(await beauty.evaluate(element => element.scrollWidth <= element.clientWidth + 2)).toBe(true);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto(companyURL);
+  await page.getByRole("link", { name: "Gerar demonstração de site" }).click();
+  await page.getByLabel("Template").selectOption({ label: "Clínicas dentárias" });
+  await page.getByLabel("Serviços confirmados").fill("Limpeza dental");
+  await page.getByLabel("WhatsApp comercial autorizado").fill("5571999999999");
+  await page.getByRole("checkbox", { name: /autorizo o envio/ }).check();
+  await page.getByRole("button", { name: "Gerar demonstração" }).click();
+  await expect(page.getByRole("link", { name: "Layout odontológico" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("heading", { name: "Tratamentos e serviços" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "WhatsApp", exact: true })).toHaveAttribute("href", "https://wa.me/5571999999999");
+  await page.getByRole("link", { name: "Comparar layouts" }).click();
+  for (const name of ["Layout de clínicas", "Layout odontológico"]) {
+    await expect(page.getByRole("region", { name }).getByText("Limpeza dental", { exact: true })).toBeVisible();
+  }
+  await page.getByRole("link", { name: "Layout odontológico" }).click();
+  await expect(page).toHaveURL(/\?layout=odontologia$/);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.getByRole("article").evaluate(element => element.scrollWidth <= element.clientWidth + 2)).toBe(true);
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto("/empresas?q=Central&etapa=qualified");
   await expect(page.getByRole("link", { name: "Oficina Central" })).toBeVisible();

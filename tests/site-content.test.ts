@@ -3,9 +3,9 @@ import { aiCopy, assembleSite, generationForm, suggestedTemplate } from "../src/
 import { estimateMicros } from "../src/integrations/ai/gemini";
 
 const copy = { headline: "Conheça nosso espaço", subtitle: "Uma apresentação dos serviços.", about: "Informações comerciais para sua revisão.", action: "Saiba mais" } as const;
-it("mapeia segmentos para cinco templates", () => {
-  expect(["Salão de beleza", "Padaria", "Oficina", "Clínica", "Contabilidade"].map(suggestedTemplate))
-    .toEqual(["beauty", "food", "auto", "health", "services"]);
+it("sugere o template pelo segmento e prioriza odontologia sobre clínica geral", () => {
+  expect(["Salão de beleza", "Padaria", "Oficina", "Clínica", "Clínica odontológica", "Saúde bucal", "Contabilidade"].map(suggestedTemplate))
+    .toEqual(["beauty", "food", "auto", "health", "dental", "dental", "services"]);
 });
 it("rejeita HTML, alegações numéricas e campos inventados", () => {
   expect(aiCopy.safeParse({ ...copy, headline: "<script>Oi</script>" }).success).toBe(false);

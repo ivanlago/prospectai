@@ -7,6 +7,7 @@ const illustrations = {
   food: Utensils,
   auto: Car,
   health: Activity,
+  dental: Activity,
   services: Briefcase,
 } satisfies Record<TemplateId, typeof Sparkles>;
 

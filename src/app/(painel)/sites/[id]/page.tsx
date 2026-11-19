@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/auth";
 import { PageHeader } from "@/components/controls";
 import { BeautyPreview } from "@/components/beauty-preview";
+import { DentalPreview } from "@/components/dental-preview";
 import { SitePreview } from "@/components/site-preview";
 import { ClinicPreview } from "@/components/clinic-preview";
 import styles from "@/components/clinic-preview.module.css";
@@ -38,15 +39,19 @@ export default async function Site({ params, searchParams }: {
   const content = siteContent.safeParse(project.content).data;
   const template = templateId.safeParse(project.template).data;
   const requested = (await searchParams).layout;
-  const alternative = template === "beauty"
+  const alternative = template === "dental"
+    ? { id: "odontologia", label: "Layout odontológico", Preview: DentalPreview }
+    : template === "beauty"
     ? { id: "editorial", label: "Beleza editorial", Preview: BeautyPreview }
     : { id: "clinica", label: "Clínica redesenhada", Preview: ClinicPreview };
+  const originalLabel = template === "dental" ? "Layout de clínicas" : "Layout original";
   const layoutOptions = [
-    { id: "anterior", label: "Layout original" },
+    { id: "anterior", label: originalLabel },
     alternative,
     { id: "comparar", label: "Comparar layouts" },
   ];
-  const layout = layoutOptions.find(option => option.id === requested)?.id ?? (template === "health" ? "clinica" : "anterior");
+  const layout = layoutOptions.find(option => option.id === requested)?.id
+    ?? (template === "health" || template === "dental" ? alternative.id : "anterior");
   const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD", maximumFractionDigits: 6 });
   return <>
     <PageHeader title="Demonstração" description={`${project.model} · estimativa ${money.format(project.costMicros / 1000000)}`} href="/sites" action="Ver histórico" />
@@ -58,9 +63,12 @@ export default async function Site({ params, searchParams }: {
         </Link>)}
       </nav>
       {layout === "comparar" ? <div className={styles.comparison}>
-        <section aria-label="Layout original"><h2>Layout original</h2><SitePreview content={content} template={template} /></section>
+        <section aria-label={originalLabel}><h2>{originalLabel}</h2>
+          {template === "dental" ? <ClinicPreview content={content} /> : <SitePreview content={content} template={template} />}
+        </section>
         <section aria-label={alternative.label}><h2>{alternative.label}</h2><alternative.Preview content={content} /></section>
-      </div> : layout === alternative.id ? <alternative.Preview content={content} /> : <SitePreview content={content} template={template} />}
+      </div> : layout === alternative.id ? <alternative.Preview content={content} />
+        : template === "dental" ? <ClinicPreview content={content} /> : <SitePreview content={content} template={template} />}
     </> :
       <p className="feedback" role="status">{project.status === "running" ? "Geração em andamento." : generationMessages[project.error ?? "invalid"] ?? generationMessages.invalid}</p>}
   </>;

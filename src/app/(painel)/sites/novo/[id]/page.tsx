@@ -33,7 +33,7 @@ export default async function NewSite({ params }: { params: Promise<{ id: string
             {Object.entries(templates).map(([key, template]) => <option key={key} value={key}>{template.label}</option>)}
           </select></label>
           <label>Serviços confirmados (um por linha)<textarea name="serviceLines" maxLength={1100} rows={5} placeholder="Até oito serviços. Deixe em branco se ainda precisam de confirmação." /></label>
-          <label>Foto autorizada da empresa para Beleza e estética
+          <label>Foto autorizada da empresa para Beleza e estética ou Clínicas dentárias
             <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" />
             <small>Opcional. JPEG, PNG ou WebP de até 500 KB. A foto fica na prévia privada.</small>
           </label>

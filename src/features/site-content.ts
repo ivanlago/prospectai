@@ -5,15 +5,17 @@ export const templates = {
   food: { label: "Restaurantes e cafeterias", accent: "#994021", background: "#fbebd7", style: "banner" },
   auto: { label: "Oficinas e serviços automotivos", accent: "#154a78", background: "#e7eff7", style: "industrial" },
   health: { label: "Clínicas e consultórios", accent: "#116051", background: "#e5f5ef", style: "clinical" },
+  dental: { label: "Clínicas dentárias", accent: "#a12030", background: "#f9efed", style: "clinical" },
   services: { label: "Serviços profissionais", accent: "#51408a", background: "#f0ecfb", style: "professional" },
 } as const;
 
-export const templateId = z.enum(["beauty", "food", "auto", "health", "services"]);
+export const templateId = z.enum(["beauty", "food", "auto", "health", "dental", "services"]);
 export type TemplateId = z.infer<typeof templateId>;
 
 export function suggestedTemplate(segment: string): TemplateId {
   const normalized = segment.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
-  if (/clinica|consultorio|dentista|medic|saude/.test(normalized)) return "health";
+  if (/odontolog|dentista|dental|dentari|saude bucal/.test(normalized)) return "dental";
+  if (/clinica|consultorio|medic|saude/.test(normalized)) return "health";
   if (/estetica|salao|beleza|barbear/.test(normalized)) return "beauty";
   if (/restaurante|cafeteria|padaria|aliment/.test(normalized)) return "food";
   if (/oficina|automot|mecanica/.test(normalized)) return "auto";
