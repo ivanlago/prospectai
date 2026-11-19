@@ -38,6 +38,7 @@ export const siteContent = z.object({
   name: publicLine, segment: publicLine, city: publicLine, state: publicLine,
   address: z.string().trim().max(300),
   email, whatsapp,
+  photo: z.string().max(700000).regex(/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/).optional(),
   services: z.array(publicLine).max(8),
   copy: aiCopy,
   seo: z.object({ title: z.string().max(160), description: z.string().max(180) }),
@@ -54,7 +55,7 @@ export const generationForm = z.object({
 
 export type SiteContent = z.infer<typeof siteContent>;
 
-export function assembleSite(company: { name: string; segment: string; city: string; state: string; address: string; email?: string; whatsapp?: string },
+export function assembleSite(company: { name: string; segment: string; city: string; state: string; address: string; email?: string; whatsapp?: string; photo?: string },
   services: string[], copy: z.infer<typeof aiCopy>): SiteContent {
   return siteContent.parse({ ...company, services, copy,
     seo: { title: company.name, description: copy.subtitle },

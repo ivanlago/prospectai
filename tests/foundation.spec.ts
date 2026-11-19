@@ -59,6 +59,30 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await expect(page.getByRole("heading", { name: "Cuidado em cada detalhe" })).toBeVisible();
   await page.getByRole("link", { name: "Ver histórico" }).click();
   await expect(page.getByRole("cell", { name: "300 / 110" })).toBeVisible();
+  await page.goto(companyURL);
+  await page.getByRole("link", { name: "Gerar demonstração de site" }).click();
+  await page.getByLabel("Template").selectOption("beauty");
+  await page.getByLabel("Serviços confirmados").fill("Cuidados faciais");
+  await page.getByLabel("E-mail comercial autorizado").fill("agenda@example.test");
+  await page.getByLabel("Foto autorizada da empresa").setInputFiles({
+    name: "foto.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==", "base64"),
+  });
+  await page.getByRole("checkbox", { name: /autorizo o envio/ }).check();
+  await page.getByRole("button", { name: "Gerar demonstração" }).click();
+  await expect(page.getByRole("link", { name: "Layout original" })).toHaveAttribute("aria-current", "page");
+  await page.getByRole("link", { name: "Comparar layouts" }).click();
+  const editorial = page.getByRole("region", { name: "Beleza editorial" });
+  await expect(editorial.getByText("Cuidados faciais", { exact: true })).toBeVisible();
+  await expect(editorial.getByRole("img", { name: "Foto fornecida para Oficina Central" })).toBeVisible();
+  await expect(editorial.getByRole("link", { name: "agenda@example.test" })).toHaveAttribute("href", "mailto:agenda@example.test");
+  await page.getByRole("link", { name: "Beleza editorial" }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const beauty = page.getByRole("article");
+  await expect(beauty).toBeVisible();
+  expect(await beauty.evaluate(element => element.scrollWidth <= element.clientWidth + 2)).toBe(true);
+  await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto("/empresas?q=Central&etapa=qualified");
   await expect(page.getByRole("link", { name: "Oficina Central" })).toBeVisible();
   await page.goto("/?periodo=7");

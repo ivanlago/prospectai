@@ -5,7 +5,7 @@ globalThis.fetch = (input, init) => {
   if (input === "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent") {
     const data = JSON.parse(init.body);
     const company = JSON.parse(data.contents[0].parts[0].text);
-    if (company.name !== "Oficina Central" || company.services[0] !== "Manutenção preventiva" ||
+    if (company.name !== "Oficina Central" || !["Manutenção preventiva", "Cuidados faciais"].includes(company.services[0]) ||
         Object.keys(company).sort().join() !== "name,segment,services") {
       return Promise.resolve(new Response(null, { status: 400 }));
     }

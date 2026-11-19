@@ -1,0 +1,47 @@
+.preview {
+  --ink: #2b1d29;
+  --paper: #fff8f6;
+  --blush: #f6e4ee;
+  --rule: #dfcdd8;
+  --gutter: clamp(1.25rem, 5cqi, 4rem);
+  container-type: inline-size;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 1.25rem;
+}
+
+.preview a { color: inherit; }
+.preview a:focus-visible { outline: 2px solid #78466b; outline-offset: 4px; }
+.notice { margin: 0; padding: .65rem var(--gutter); border-bottom: 1px solid var(--rule); font-size: .8rem; }
+.header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem 1.5rem; padding: 1rem var(--gutter); }
+.header strong { font-size: 1.15rem; }
+.header nav { display: flex; flex-wrap: wrap; gap: .4rem 1rem; }
+.header a, .contact a { text-decoration: underline; text-underline-offset: .2em; }
+.hero { display: grid; background: var(--blush); padding: var(--gutter); gap: clamp(1.25rem, 4cqi, 3rem); align-items: center; }
+.withPhoto { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+.intro { padding-block: clamp(.5rem, 4cqi, 3rem); }
+.intro p { max-width: 46ch; margin: .7rem 0 0; line-height: 1.6; }
+.intro .segment { margin: 0 0 .6rem; font-size: .9rem; font-weight: 600; }
+.intro h2, .preview h3 { margin: 0; font-family: Georgia, serif; font-weight: 400; }
+.intro h2 { max-width: 18ch; font-size: clamp(2.1rem, 6.9cqi, 5.1rem); line-height: 1; letter-spacing: -.045em; text-wrap: balance; }
+.photo { position: relative; min-width: 0; aspect-ratio: 4 / 5; border-radius: .9rem; overflow: hidden; }
+.photo img { object-fit: cover; }
+.cta { display: inline-flex; align-items: center; gap: .65rem; border-radius: 999px; padding: .7rem 1.05rem; margin-top: 1.25rem; background: var(--ink); }
+.preview .cta { color: white; }
+.services, .about, .contact { padding: var(--gutter); }
+.preview h3 { font-size: clamp(1.6rem, 4.2cqi, 2.8rem); line-height: 1.1; }
+.services ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1.5rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+.services li { padding: .8rem 0; border-top: 1px solid var(--rule); }
+.about { border-top: 1px solid var(--rule); }
+.about p { max-width: 62ch; line-height: 1.65; }
+.contact { background: #efe7f5; }
+.contact p { margin: .5rem 0; }
+.contact a { display: inline-flex; gap: .35rem; align-items: center; margin: .4rem .9rem .2rem 0; }
+
+@container (max-width: 36rem) {
+  .withPhoto, .services ul { grid-template-columns: minmax(0, 1fr); }
+  .photo { aspect-ratio: 5 / 4; }
+}
