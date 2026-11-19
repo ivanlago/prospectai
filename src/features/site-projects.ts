@@ -1,18 +1,11 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { companies, websiteProjects } from "@/db/schema";
 import { siteAiProvider } from "@/integrations/ai/provider";
 import { assembleSite, type generationForm } from "./site-content";
-
-const limits = z.object({
-  daily: z.coerce.number().int().min(1).max(100).default(5),
-  budget: z.coerce.number().min(0).max(1000).default(5),
-});
-
-export function generationConfig() {
-  return limits.safeParse({ daily: process.env.AI_DAILY_LIMIT || undefined, budget: process.env.AI_MONTHLY_BUDGET_USD || undefined }).data;
-}
+import { claimAiBudget, generationConfig } from "./site-ai-usage";
+export { generationConfig } from "./site-ai-usage";
 
 export const generationMessages: Record<string, string> = {
   disabled: "Configure a chave do provedor de IA e os limites de geração no servidor.",
@@ -20,7 +13,7 @@ export const generationMessages: Record<string, string> = {
   missing: "Empresa indisponível.",
   daily: "Limite diário de tentativas já atingido.",
   budget: "Saldo mensal insuficiente para iniciar outra tentativa.",
-  running: "Já existe uma geração em andamento.",
+  running: "Já existe uma solicitação de IA em andamento.",
   quota: "O provedor retornou um limite de uso. Confira a cota da conta.",
   auth: "O provedor recusou a credencial configurada.",
   invalid: "O conteúdo retornado não passou pela validação.",
@@ -45,20 +38,11 @@ export async function generateSite(companyId: string, form: z.infer<typeof gener
   const { reservedMicros } = adapter;
   const db = getDb();
   const prepared = await db.transaction(async tx => {
-    await tx.execute(sql`select pg_advisory_xact_lock(7384503)`);
     const [company] = await tx.select({ name: companies.name, segment: companies.segment, city: companies.city, state: companies.state, address: companies.address })
       .from(companies).where(eq(companies.id, companyId)).for("key share");
     if (!company) return { error: "missing" };
-    await tx.update(websiteProjects).set({ status: "failed", error: "timeout", finishedAt: new Date() })
-      .where(and(eq(websiteProjects.status, "running"), sql`${websiteProjects.createdAt} < now() - interval '90 seconds'`));
-    const [running] = await tx.select({ id: websiteProjects.id }).from(websiteProjects).where(eq(websiteProjects.status, "running")).limit(1);
-    if (running) return { error: "running" };
-    const [usage] = await tx.select({
-      daily: sql<number>`count(*) filter (where ${websiteProjects.createdAt} >= date_trunc('day', now() at time zone 'America/Bahia') at time zone 'America/Bahia')::int`,
-      monthly: sql<number>`coalesce(sum(${websiteProjects.costMicros}), 0)::int`,
-    }).from(websiteProjects).where(sql`${websiteProjects.createdAt} >= date_trunc('month', now() at time zone 'America/Bahia') at time zone 'America/Bahia'`);
-    if (usage.daily >= config.daily) return { error: "daily" };
-    if (usage.monthly + reservedMicros > Math.floor(config.budget * 1000000)) return { error: "budget" };
+    const error = await claimAiBudget(tx, config, reservedMicros);
+    if (error) return { error };
     const [project] = await tx.insert(websiteProjects).values({ companyId, model: adapter.model, template: form.template, costMicros: reservedMicros })
       .returning({ id: websiteProjects.id });
     return { projectId: project.id, company };

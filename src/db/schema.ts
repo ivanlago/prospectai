@@ -154,6 +154,22 @@ export const websiteRevisions = pgTable("website_revisions", {
   createdAt: created(),
 }, table => [uniqueIndex().on(table.projectId, table.revision)]);
 
+export const websiteEditAttempts = pgTable("website_edit_attempts", {
+  id: uuid().primaryKey().defaultRandom(),
+  projectId: uuid("project_id").references(() => websiteProjects.id, { onDelete: "set null" }),
+  actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+  baseRevision: integer("base_revision").notNull(),
+  status: siteStatus().notNull().default("running"),
+  model: text().notNull(),
+  operations: jsonb(),
+  inputTokens: integer("input_tokens"),
+  outputTokens: integer("output_tokens"),
+  costMicros: integer("cost_micros").notNull(),
+  error: text(),
+  createdAt: created(),
+  finishedAt: date("finished_at"),
+}, table => [index().on(table.createdAt), index().on(table.projectId, table.createdAt)]);
+
 export const activities = pgTable("activities", {
   id: uuid().primaryKey().defaultRandom(),
   companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),

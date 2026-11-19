@@ -52,4 +52,6 @@ Abra uma empresa e selecione **Gerar demonstração de site**. Escolha um dos se
 
 Na demonstração, use **Editar demonstração** para atualizar os textos, organizar as seções e trocar foto, paleta, tipografia ou espaçamento. Alterne entre **Desktop** e **Celular** para revisar a composição. **Salvar rascunho** cria uma revisão privada. Para recuperar uma anterior, selecione-a no histórico e use **Restaurar revisão**.
 
+No editor, o **Assistente de edição** propõe mudanças sobre a última revisão salva. Após autorizar o envio do pedido e do contexto, confira os valores atuais e propostos. **Aplicar proposta** cria uma revisão, e **Desfazer alteração da IA** restaura a anterior. O limite de tentativas e o orçamento são compartilhados com a geração inicial. O envio inclui textos editáveis, segmento, template, aparência e quantidade de serviços. A integração não inclui foto, canais de contato, endereço ou notas do CRM como campos do contexto.
+
 Leia a documentação de [arquitetura](docs/architecture.md), [banco](docs/database.md), [fontes](docs/data-sources.md), [segurança](docs/security.md) e [implantação](docs/deployment.md).

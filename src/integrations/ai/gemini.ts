@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { copySchema, maxEstimatedInputTokens, maxOutputTokens, parseCopy, providerError, readAiJson, systemPrompt, type SiteAiAdapter } from "./site-ai";
+import { editRequest, generationRequest, maxEstimatedInputTokens, maxOutputTokens, providerError, readAiJson, type SiteAiAdapter, type StructuredRequest, type StructuredResult } from "./site-ai";
 
 const model = "gemini-3.1-flash-lite";
 const usageSchema = z.object({
@@ -20,25 +20,19 @@ export const estimateMicros = (input: number, output: number) => Math.ceil(input
 export function gemini(): SiteAiAdapter | null {
   const key = process.env.GEMINI_API_KEY?.trim();
   if (!key) return null;
-  return {
-    id: "gemini",
-    label: "Gemini",
-    model,
-    estimateMicros,
-    reservedMicros: estimateMicros(maxEstimatedInputTokens, maxOutputTokens),
-    async generate(input) {
+  async function request<T>(input: unknown, contract: StructuredRequest<T>, apiKey: string): Promise<StructuredResult<T>> {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: "POST",
-        headers: { "content-type": "application/json", "x-goog-api-key": key },
+        headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
         redirect: "error",
         cache: "no-store",
         signal: AbortSignal.timeout(25000),
         body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
+          systemInstruction: { parts: [{ text: contract.prompt }] },
           contents: [{ role: "user", parts: [{ text: JSON.stringify(input) }] }],
           generationConfig: {
             maxOutputTokens, candidateCount: 1, thinkingConfig: { thinkingLevel: "minimal" },
-            responseMimeType: "application/json", responseJsonSchema: copySchema,
+            responseMimeType: "application/json", responseJsonSchema: contract.schema,
           },
         }),
       });
@@ -50,8 +44,19 @@ export function gemini(): SiteAiAdapter | null {
       const candidate = parsed?.candidates?.[0];
       if (candidate?.finishReason !== "STOP") return { ...tokens, error: "invalid" };
       const text = candidate.content.parts.filter(part => !part.thought).map(part => part.text ?? "").join("");
-      const copy = parseCopy(text);
-      return copy ? { ...tokens, copy } : { ...tokens, error: "invalid" };
+      const value = contract.parse(text);
+      return value ? { ...tokens, value } : { ...tokens, error: "invalid" };
+  }
+  return {
+    id: "gemini", label: "Gemini", model, estimateMicros,
+    reservedMicros: estimateMicros(maxEstimatedInputTokens, maxOutputTokens),
+    async generate(input) {
+      const { value, ...usage } = await request(input, generationRequest, key);
+      return value ? { ...usage, copy: value } : usage;
+    },
+    async edit(input) {
+      const { value, ...usage } = await request(input, editRequest, key);
+      return value ? { ...usage, proposal: value } : usage;
     },
   };
 }

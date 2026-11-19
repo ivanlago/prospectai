@@ -42,3 +42,16 @@ it("recusa resposta incompleta e mantém o consumo reportado pelo provedor", asy
   expect(await groq()?.generate({ name: "Oficina", segment: "Automotivo", services: [] }))
     .toEqual({ error: "invalid", inputTokens: 40, outputTokens: 10 });
 });
+
+it("usa o contrato de operações separado para editar pelo Groq", async () => {
+  vi.stubEnv("GROQ_API_KEY", "groq-fixture");
+  const proposal = { operations: [{ field: "font", value: "serifa" }] };
+  const fetchMock = vi.fn().mockResolvedValue(Response.json({
+    choices: [{ finish_reason: "stop", message: { content: JSON.stringify(proposal) } }],
+    usage: { prompt_tokens: 95, completion_tokens: 18 },
+  }));
+  vi.stubGlobal("fetch", fetchMock);
+  expect(await groq()?.edit({ instruction: "Use uma fonte com serifa.", site: { font: "template" } }))
+    .toEqual({ proposal, inputTokens: 95, outputTokens: 18 });
+  expect(JSON.parse(fetchMock.mock.calls[0][1].body).response_format.json_schema.name).toBe("site_edit");
+});
