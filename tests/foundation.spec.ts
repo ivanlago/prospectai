@@ -3,6 +3,8 @@ import { expect, test } from "@playwright/test";
 test("protege rotas e bloqueia cadastro público", async ({ page, request }) => {
   await page.goto("/empresas");
   await expect(page).toHaveURL(/\/entrar$/);
+  await page.goto("/configuracoes");
+  await expect(page).toHaveURL(/\/entrar$/);
   const response = await request.post("/api/auth/sign-up/email", { data: { email: "outro@example.test", password: "senha-apenas-do-teste" } });
   expect(response.status()).toBe(403);
 });
@@ -109,7 +111,7 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await expect(page.getByRole("link", { name: "Oficina Central" })).toBeVisible();
   await expect(page.getByRole("meter", { name: "Qualificado" })).toHaveAttribute("value", "1");
 
-  await page.getByRole("link", { name: "Pesquisas", exact: true }).click();
+  await page.getByRole("link", { name: "Encontrar empresas", exact: true }).click();
   await page.getByRole("link", { name: "Nova pesquisa" }).click();
   await page.getByLabel("Nome da pesquisa").fill("Oficinas em Salvador");
   await page.getByLabel("Estado").fill("Bahia");
@@ -156,6 +158,48 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await expect(page).toHaveURL(/\/entrar$/);
   await page.goto(demoURL);
   await expect(page).toHaveURL(/\/entrar$/);
+});
+
+test("painel prioriza a pesquisa e mantém a navegação acessível no desktop e no celular", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/entrar");
+  await page.getByLabel("E-mail").fill("admin@example.test");
+  await page.getByLabel("Senha").fill("senha-apenas-do-teste");
+  await page.getByRole("button", { name: "Entrar" }).click();
+
+  const nav = page.getByRole("navigation", { name: "Menu principal" });
+  await expect(nav.getByRole("link", { name: "Dashboard" })).toHaveAttribute("aria-current", "page");
+  const collapse = page.getByRole("button", { name: "Barra lateral compacta" });
+  await collapse.focus();
+  await page.keyboard.press("Enter");
+  await expect(collapse).toHaveAttribute("aria-pressed", "true");
+  await expect(nav.getByRole("link", { name: "CRM" })).toBeVisible();
+  await page.getByRole("button", { name: "Alternar tema" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.getByRole("link", { name: "Iniciar pesquisa" }).click();
+  await expect(page.getByRole("heading", { name: "Nova pesquisa" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Encontrar empresas" })).toHaveAttribute("aria-current", "page");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(16, 23, 38)");
+
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto("/");
+  await expect(nav).toBeHidden();
+  await expect(page.getByRole("link", { name: "Iniciar pesquisa" })).toBeInViewport();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+
+  const menu = page.getByRole("button", { name: "Abrir menu" });
+  await menu.click();
+  await nav.getByRole("link", { name: "Configurações" }).focus();
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeFocused();
+  await expect(nav).toBeHidden();
+  await menu.click();
+  await nav.getByRole("link", { name: "Configurações" }).click();
+  await expect(page.getByRole("heading", { name: "Configurações" })).toBeVisible();
+  await expect(nav).toBeHidden();
 });
 
 for (const city of ["Salvador", "Lauro de Freitas", "Camaçari"]) {
