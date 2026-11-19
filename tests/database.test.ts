@@ -6,7 +6,7 @@ import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promi
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
-import { activities, companies, sessions, users, websiteProjects, websiteRevisions } from "../src/db/schema";
+import { activities, companies, companyOriginReviews, companySources, sessions, users, websiteProjects, websiteRevisions } from "../src/db/schema";
 
 it("aplica a migração e garante integridade dos registros", async () => {
   const client = await PGlite.create();
@@ -44,11 +44,17 @@ it("aplica a migração aditiva sobre projetos existentes e protege a sequência
     await Promise.all(previous.map(({ tag }) => copyFile(join("drizzle", `${tag}.sql`), join(previousFolder, `${tag}.sql`))));
     await migrate(db, { migrationsFolder: previousFolder });
     const original = { name: "Empresa de teste", services: [] };
+    const [company] = await db.insert(companies).values({ name: original.name, segment: "Serviços",
+      country: "Brasil", state: "Bahia", city: "Salvador", identityKey: "fixture-origem" }).returning();
+    const review = { evidence: "Revisão anterior à migração", score: 55 };
+    await db.insert(companySources).values({ companyId: company.id, provider: "openstreetmap", reference: "node/7", permission: "ODbL 1.0", review });
     const [project] = await db.insert(websiteProjects).values({
       template: "services", status: "ready", model: "fixture", costMicros: 0, content: original,
     }).returning();
 
     await migrate(db, config);
+    expect(await db.select().from(companyOriginReviews)).toMatchObject([{ companyId: company.id, reference: "node/7", permission: "ODbL 1.0", review }]);
+    expect(await db.select().from(companySources)).toMatchObject([{ companyId: company.id, review }]);
     const [stored] = await db.select().from(websiteProjects).where(eq(websiteProjects.id, project.id));
     expect(stored.content).toEqual(original);
     const revision = { projectId: project.id, revision: 1, content: { ...original, version: 1 } };

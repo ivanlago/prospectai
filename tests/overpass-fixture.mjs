@@ -17,7 +17,9 @@ globalThis.fetch = (input, init) => {
         usageMetadata: { promptTokenCount: 120, candidatesTokenCount: 45 },
       }));
     }
-    if (company.name !== "Oficina Central" || !["Manutenção preventiva", "Cuidados faciais", "Limpeza dental"].includes(company.services[0]) ||
+    const office = company.name === "Oficina Central" && ["Manutenção preventiva", "Cuidados faciais", "Limpeza dental"].includes(company.services[0]);
+    const cafe = company.name === "Cafeteria de teste 21" && company.services[0] === "Atendimento no salão";
+    if ((!office && !cafe) ||
         Object.keys(company).sort().join() !== "name,segment,services") {
       return Promise.resolve(new Response(null, { status: 400 }));
     }

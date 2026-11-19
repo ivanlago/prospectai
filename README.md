@@ -56,4 +56,6 @@ No editor, o **Assistente de edição** propõe mudanças sobre a última revis�
 
 Em **Compartilhar demonstração**, revise a cópia pública e escolha validade de **1, 7 ou 30 dias**. Quem tiver o link pode abrir a demonstração sem login. Copie o endereço quando for criado e revogue o acesso na lista de links. Edições posteriores não alteram uma cópia já compartilhada.
 
+A ficha no **CRM** reúne as demonstrações vinculadas, as revisões atuais, a quantidade de links ativos e o histórico de criação e revogação. Use **Gerenciar links** para emitir ou revogar links da demonstração. Em **Origem e evidências**, consulte as revisões importadas e suas referências. Importar novamente uma referência já vinculada reaproveita o cadastro e preserva sua etapa comercial.
+
 Leia a documentação de [arquitetura](docs/architecture.md), [banco](docs/database.md), [fontes](docs/data-sources.md), [segurança](docs/security.md) e [implantação](docs/deployment.md).

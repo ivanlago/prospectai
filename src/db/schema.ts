@@ -129,6 +129,20 @@ export const companySources = pgTable("company_sources", {
   createdAt: created(),
 }, table => [uniqueIndex().on(table.provider, table.reference)]);
 
+export const companyOriginReviews = pgTable("company_origin_reviews", {
+  id: uuid().primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  provider: text().notNull(),
+  reference: text().notNull(),
+  permission: text().notNull(),
+  review: jsonb().notNull(),
+  reviewedAt: date("reviewed_at").notNull(),
+  createdAt: created(),
+}, table => [
+  uniqueIndex().on(table.companyId, table.provider, table.reference, table.reviewedAt),
+  index().on(table.provider, table.reference),
+]);
+
 export const siteStatus = pgEnum("site_status", ["running", "ready", "failed"]);
 export const websiteProjects = pgTable("website_projects", {
   id: uuid().primaryKey().defaultRandom(),

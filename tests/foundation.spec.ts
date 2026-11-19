@@ -19,6 +19,7 @@ test("responde com 404 para uma demonstração expirada ou sem token válido", a
 });
 
 test("admin cria, edita e exclui registros, move etapa e encerra sessão", async ({ page }) => {
+  test.setTimeout(75000);
   await page.goto("/entrar");
   await page.getByLabel("E-mail").fill("admin@example.test");
   await page.getByLabel("Senha").fill("senha-apenas-do-teste");
@@ -247,6 +248,7 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await expect(page.getByText("Cafeteria de teste 21", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Revisar", exact: true }).click();
   await expect(page).toHaveURL(/\/pesquisas\/revisao\//);
+  const reviewURL = page.url();
   await page.getByLabel("Evidência da revisão").fill("Consulta manual pelo nome e pela cidade.");
   await page.getByRole("combobox", { name: "Presença digital", exact: true }).selectOption("website_not_found");
   await page.getByRole("checkbox", { name: "Informações comerciais confirmadas" }).check();
@@ -254,7 +256,37 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await expect(page.getByText("50/100 · Qualificada")).toBeVisible();
   await page.getByRole("checkbox", { name: "Confirmo o uso dos dados de origem sob ODbL." }).check();
   await page.getByRole("button", { name: "Importar para o CRM" }).click();
+  await expect(page).toHaveURL(/\/empresas\/[a-f0-9-]+$/);
   await expect(page.getByRole("link", { name: "Registro de origem" })).toBeVisible();
+  const importedURL = page.url();
+  await page.goto(reviewURL);
+  await page.getByLabel("Evidência da revisão").fill("Segunda consulta manual para conferir a presença digital.");
+  await page.getByRole("button", { name: "Salvar revisão" }).click();
+  await expect(page.getByText("Revisão salva.")).toBeVisible();
+  await page.getByRole("checkbox", { name: "Confirmo o uso dos dados de origem sob ODbL." }).check();
+  await page.getByRole("button", { name: "Importar para o CRM" }).click();
+  await expect(page).toHaveURL(importedURL);
+  await expect(page.getByRole("region", { name: "Origem e evidências" }).getByRole("link", { name: "Registro de origem" })).toHaveCount(2);
+  await page.getByRole("link", { name: "Gerar demonstração de site" }).click();
+  await page.getByLabel("Serviços confirmados").fill("Atendimento no salão");
+  await page.getByRole("checkbox", { name: /autorizo o envio/ }).check();
+  await page.getByRole("button", { name: "Gerar demonstração" }).click();
+  await expect(page.getByRole("heading", { name: "Cuidado em cada detalhe" })).toBeVisible();
+  await page.getByRole("link", { name: "Abrir empresa no CRM" }).click();
+  const demos = page.getByRole("region", { name: "Demonstrações da empresa" });
+  await expect(demos.getByRole("cell", { name: "Restaurantes e cafeterias" })).toBeVisible();
+  await demos.getByRole("link", { name: "Gerenciar links" }).click();
+  await page.getByRole("checkbox", { name: /aprovo o conteúdo exibido/ }).check();
+  await page.getByRole("button", { name: "Criar link de demonstração" }).click();
+  await expect(publicInput).toHaveValue(/\/demo\/[\w-]{43}$/);
+  const cafeDemoURL = await publicInput.inputValue();
+  expect((await page.request.get(cafeDemoURL)).status()).toBe(200);
+  await page.getByRole("button", { name: "Revogar link" }).click();
+  await expect(page.getByRole("cell", { name: "Revogado" })).toBeVisible();
+  expect((await page.request.get(cafeDemoURL)).status()).toBe(404);
+  await page.goto(importedURL);
+  await demos.getByText("Histórico de demonstrações").click();
+  await expect(demos.getByText("Link revogado da revisão 0", { exact: false })).toBeVisible();
   await page.goto("/pesquisas");
   await page.getByRole("link", { name: "Oficinas em Salvador" }).click();
   await expect(page.getByText("Concluída", { exact: true })).toHaveCount(2);

@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gt, lt, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { companies, companySources, discoveryResults, searchRuns, searches, websiteReviews } from "@/db/schema";
+import { companies, companyOriginReviews, companySources, discoveryResults, searchRuns, searches, websiteReviews } from "@/db/schema";
 import { searchForm } from "@/domain";
 import { getDiscoveryProvider } from "@/integrations/discovery/registry";
 import { ProviderError, type SavedSearch } from "@/integrations/discovery/provider";
@@ -126,7 +126,9 @@ export function runResults(runId: string) {
   return getDb().select({
     id: discoveryResults.id, name: discoveryResults.name, website: discoveryResults.website,
     district: discoveryResults.district, reference: discoveryResults.reference, duplicateId: companies.id,
-    importedId: companySources.companyId, score: websiteReviews.score, qualified: websiteReviews.qualified,
+    importedId: sql<string | null>`coalesce((select origin.company_id from ${companyOriginReviews} origin
+      where origin.provider = 'openstreetmap' and origin.reference = ${discoveryResults.reference}
+      order by origin.created_at, origin.id limit 1), ${companySources.companyId})`, score: websiteReviews.score, qualified: websiteReviews.qualified,
     reviewedPresence: websiteReviews.presence,
   }).from(discoveryResults).innerJoin(searchRuns, eq(searchRuns.id, discoveryResults.runId))
     .leftJoin(companies, eq(companies.identityKey, discoveryResults.identityKey))

@@ -60,6 +60,7 @@ export default async function Site({ params, searchParams }: {
   const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD", maximumFractionDigits: 6 });
   return <>
     <PageHeader title="Demonstração" description={`${project.model} · estimativa ${money.format(project.costMicros / 1000000)}`} href="/sites" action="Ver histórico" />
+    {project.companyId && <div><Link href={`/empresas/${project.companyId}`}>Abrir empresa no CRM</Link></div>}
     {project.status === "ready" && content && template ? <>
       <nav className="toolbar" aria-label="Escolher layout da demonstração">
         {layoutOptions.map(option => <Link key={option.id} href={`/sites/${project.id}?layout=${option.id}`}

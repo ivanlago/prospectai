@@ -1,6 +1,7 @@
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, sql } from "drizzle-orm";
+import { z } from "zod";
 import { getDb } from "@/db";
-import { activities, auditLogs, companies, companySources, discoveryResults, searchRuns, websiteReviews } from "@/db/schema";
+import { activities, auditLogs, companies, companyOriginReviews, companySources, discoveryResults, searchRuns, websiteReviews } from "@/db/schema";
 import { categoryOptions, osmFilters, stateLabel } from "@/integrations/discovery/overpass";
 import { assessOpportunity, type Review } from "./qualification";
 
@@ -12,6 +13,18 @@ function reviewQuery(db: Pick<ReturnType<typeof getDb>, "select">, resultId: str
 }
 
 export const getReview = (resultId: string) => reviewQuery(getDb(), resultId);
+
+export async function companyOrigins(companyId: string) {
+  const db = getDb();
+  const [history, [legacy]] = await Promise.all([
+    db.select().from(companyOriginReviews).where(eq(companyOriginReviews.companyId, companyId))
+      .orderBy(desc(companyOriginReviews.reviewedAt), desc(companyOriginReviews.id)),
+    db.select().from(companySources).where(eq(companySources.companyId, companyId)),
+  ]);
+  if (!legacy || history.some(source => source.provider === legacy.provider && source.reference === legacy.reference &&
+      JSON.stringify(source.review) === JSON.stringify(legacy.review))) return history;
+  return [...history, { ...legacy, id: legacy.companyId, reviewedAt: legacy.createdAt }];
+}
 
 export function saveReview(actorId: string, resultId: string, input: Review) {
   return getDb().transaction(async tx => {
@@ -37,26 +50,44 @@ export function importOpportunity(actorId: string, resultId: string) {
     if (!filters) return null;
     const provider = "openstreetmap";
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${result.reference}))`);
-    const [existing] = await tx.select({ id: companySources.companyId }).from(companySources)
+    const [existing] = await tx.select({ id: companyOriginReviews.companyId }).from(companyOriginReviews)
+      .where(and(eq(companyOriginReviews.provider, provider), eq(companyOriginReviews.reference, result.reference)))
+      .orderBy(asc(companyOriginReviews.createdAt), asc(companyOriginReviews.id)).limit(1);
+    const [legacy] = existing ? [] : await tx.select({ id: companySources.companyId }).from(companySources)
       .where(and(eq(companySources.provider, provider), eq(companySources.reference, result.reference)));
-    if (existing) return existing.id;
-    const [company] = await tx.insert(companies).values({
+    const matched = existing ?? legacy;
+    const [created] = matched ? [] : await tx.insert(companies).values({
       name: result.name, city: filters.city, state: stateLabel(filters.state), country: "Brasil",
       segment: categoryOptions.find(option => option.value === filters.category)?.label ?? filters.category,
       website: review.presence === "website_found" ? review.website : "",
       stage: "qualified", source: provider, identityKey: result.identityKey,
     }).onConflictDoNothing({ target: companies.identityKey }).returning({ id: companies.id });
-    if (!company) {
+    let companyId = matched?.id ?? created?.id;
+    if (!companyId) {
       const [duplicate] = await tx.select({ id: companies.id }).from(companies).where(eq(companies.identityKey, result.identityKey));
-      return duplicate?.id ?? null;
+      companyId = duplicate?.id;
     }
-    await tx.insert(companySources).values({
-      companyId: company.id, provider, reference: result.reference, permission: "ODbL 1.0",
-      review: { provider: run.provider, presence: review.presence, reviewedAt: review.reviewedAt.toISOString(),
-        score: review.score, evidence: review.evidence, breakdown: review.breakdown },
-    });
-    await tx.insert(activities).values({ companyId: company.id, actorId, type: "company.imported", detail: `Importada após revisão. Score ${review.score}/100.` });
-    await tx.insert(auditLogs).values({ entityId: company.id, actorId, event: "company.imported" });
-    return company.id;
+    if (!companyId) return null;
+    const reviewedAt = review.reviewedAt.toISOString();
+    const evidence = {
+      provider: run.provider, presence: review.presence, reviewedAt, score: review.score,
+      evidence: review.evidence, breakdown: review.breakdown, website: review.website, resultId: result.id, runId: run.id,
+      consultedAt: z.object({ consultedAt: z.iso.datetime() }).safeParse(run.filters).data?.consultedAt ?? run.createdAt.toISOString(),
+    };
+    const origin = { companyId, provider, reference: result.reference, permission: "ODbL 1.0", review: evidence };
+    if (created) await tx.insert(companySources).values(origin);
+    const [alreadyRecorded] = await tx.select({ id: companyOriginReviews.id }).from(companyOriginReviews)
+      .where(and(eq(companyOriginReviews.companyId, companyId), eq(companyOriginReviews.provider, provider),
+        eq(companyOriginReviews.reference, result.reference), sql`${companyOriginReviews.review}->>'reviewedAt' = ${reviewedAt}`)).limit(1);
+    if (alreadyRecorded) return companyId;
+    const [record] = await tx.insert(companyOriginReviews).values({ ...origin, reviewedAt: review.reviewedAt })
+      .onConflictDoNothing().returning({ id: companyOriginReviews.id });
+    if (record) {
+      const event = created ? "company.imported" : "company.origin_recorded";
+      await tx.insert(activities).values({ companyId, actorId, type: event,
+        detail: created ? `Importada após revisão. Score ${review.score}/100.` : `Evidência de origem registrada. Score ${review.score}/100.` });
+      await tx.insert(auditLogs).values({ entityId: companyId, actorId, event });
+    }
+    return companyId;
   });
 }

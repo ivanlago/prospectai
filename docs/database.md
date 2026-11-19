@@ -11,6 +11,7 @@ Use uma branch Neon dedicada ao desenvolvimento. Configure a URL com pooler para
 | website_projects, website_revisions | Geração original e revisões privadas de demonstrações |
 | website_edit_attempts | Propostas temporárias, estado e consumo do assistente |
 | website_share_links | Hash do link, revisão de origem, cópia pública e validade |
+| company_sources, company_origin_reviews | Referência de origem anterior e histórico de evidências aprovadas no CRM |
 | activities, audit_logs | Histórico de CRM e trilha mínima de eventos |
 
 A chave de duplicidade combina nome, cidade, estado e país normalizados. Cadastros homônimos na mesma cidade precisam de nomes distintos. Alterações cadastrais registram o evento e sua data. A exclusão remove a empresa e suas atividades, incluindo notas. A auditoria mantém o identificador e o tipo do evento, sem copiar nome, contato ou observações.
@@ -24,3 +25,5 @@ Para reverter a aplicação, restaure a versão anterior do código e mantenha a
 A migração `0005_website_edit_attempts` acrescenta uma tabela de tentativas. O pedido em texto livre não é gravado nela. A proposta de operações vence após uma hora e é removida na próxima solicitação de edição que consiga reservar orçamento. O registro de consumo e estado fica disponível para contabilização. Geração e edição compartilham o limite diário, o orçamento mensal e a reserva transacional. Para reverter a aplicação, mantenha a tabela e as revisões já aplicadas. A versão da Fase 4 continua lendo as revisões, mas a contabilização antiga considera apenas gerações.
 
 A migração `0006_website_share_links` acrescenta a tabela de links. Cada linha aponta para um projeto e guarda a revisão emitida, o SHA-256 do token aleatório e uma cópia apenas dos campos aprovados. A revogação apaga a cópia pública imediatamente. Uma nova emissão limpa cópias expiradas. A exclusão da empresa bloqueia o acesso pelo vínculo do projeto, e a exclusão do projeto remove seus links. Para reverter o código, mantenha a tabela e o histórico. A versão anterior deixa de servir os links enquanto estiver em execução.
+
+A migração `0007_company_origin_reviews` adiciona o histórico e copia as origens existentes sem alterar a tabela anterior. Uma importação repetida reaproveita a empresa vinculada e preserva cada nova revisão aprovada. O histórico mantém a referência e a evidência mesmo quando os resultados temporários da pesquisa expiram. Em caso de rollback de código, mantenha a tabela aditiva. A versão anterior continua usando `company_sources`, e a versão atual também lê as origens gravadas nesse formato.
