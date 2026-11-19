@@ -13,7 +13,8 @@ export async function buildSite(companyId: string, provider: string, _state: str
   if (!form.success) return "Confira o template, os serviços e a autorização para enviar os dados.";
   const file = data.get("photo");
   let photo: string | undefined;
-  if (["beauty", "dental"].includes(form.data.template) && file instanceof File && file.size > 0) {
+  if (file instanceof File && file.size > 0) {
+    if (data.get("authorizePhoto") !== "on") return "Confirme a permissão de uso da foto anexada.";
     if (file.size > 500 * 1024) return "Escolha uma foto de até 500 KB.";
     const bytes = Buffer.from(await file.arrayBuffer());
     const type = bytes.subarray(0, 3).toString("hex") === "ffd8ff" ? "jpeg"

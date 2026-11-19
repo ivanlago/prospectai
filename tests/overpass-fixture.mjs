@@ -13,6 +13,10 @@ globalThis.fetch = (input, init) => {
       candidates: [{ finishReason: "STOP", content: { parts: [{ text: JSON.stringify({
         headline: "Cuidado em cada detalhe", subtitle: "Conheça a proposta de atendimento da oficina.",
         about: "Uma apresentação dos serviços desta oficina.", action: "Conheça os serviços",
+        valueProposition: "Conheça os serviços disponíveis.",
+        serviceDescriptions: [{ index: 0, description: "Consulte a empresa para conhecer os detalhes deste serviço." }],
+        seo: { title: "Conheça a empresa", description: "Uma apresentação dos serviços da empresa." },
+        tone: "suave", images: ["detalhes"], optionalSections: ["galeria"],
       }) }] } }],
       usageMetadata: { promptTokenCount: 300, candidatesTokenCount: 110 },
     }));

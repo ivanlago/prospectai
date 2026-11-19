@@ -4,6 +4,7 @@ import styles from "./site-preview.module.css";
 
 const illustrations = {
   beauty: Sparkles,
+  salon: Sparkles,
   food: Utensils,
   auto: Car,
   health: Activity,

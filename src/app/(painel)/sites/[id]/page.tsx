@@ -8,6 +8,7 @@ import { BeautyPreview } from "@/components/beauty-preview";
 import { DentalPreview } from "@/components/dental-preview";
 import { SitePreview } from "@/components/site-preview";
 import { ClinicPreview } from "@/components/clinic-preview";
+import { ComposedSitePreview } from "@/components/composed-site-preview";
 import styles from "@/components/clinic-preview.module.css";
 import { getDb } from "@/db";
 import { websiteProjects } from "@/db/schema";
@@ -46,12 +47,13 @@ export default async function Site({ params, searchParams }: {
     : { id: "clinica", label: "Clínica redesenhada", Preview: ClinicPreview };
   const originalLabel = template === "dental" ? "Layout de clínicas" : "Layout original";
   const layoutOptions = [
+    ...(content?.version === 1 ? [{ id: "composicao", label: "Prévia composta" }] : []),
     { id: "anterior", label: originalLabel },
     alternative,
     { id: "comparar", label: "Comparar layouts" },
   ];
   const layout = layoutOptions.find(option => option.id === requested)?.id
-    ?? (template === "health" || template === "dental" ? alternative.id : "anterior");
+    ?? (content?.version === 1 ? "composicao" : template === "health" || template === "dental" ? alternative.id : "anterior");
   const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD", maximumFractionDigits: 6 });
   return <>
     <PageHeader title="Demonstração" description={`${project.model} · estimativa ${money.format(project.costMicros / 1000000)}`} href="/sites" action="Ver histórico" />
@@ -62,7 +64,13 @@ export default async function Site({ params, searchParams }: {
           {option.label}
         </Link>)}
       </nav>
-      {layout === "comparar" ? <div className={styles.comparison}>
+      {layout === "composicao" && content.version === 1 ? <>
+        <ComposedSitePreview content={content} template={template} />
+        <details className="panel padded">
+          <summary>Sugestões de imagens da IA</summary>
+          <p>{content.images.length ? content.images.join(", ") : "Nenhuma categoria sugerida."}</p>
+        </details>
+      </> : layout === "comparar" ? <div className={styles.comparison}>
         <section aria-label={originalLabel}><h2>{originalLabel}</h2>
           {template === "dental" ? <ClinicPreview content={content} /> : <SitePreview content={content} template={template} />}
         </section>

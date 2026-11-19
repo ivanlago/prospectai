@@ -15,7 +15,11 @@ it("seleciona o provedor configurado sem recorrer a outro", () => {
 
 it("envia o esquema ao Groq e preserva tokens da resposta", async () => {
   vi.stubEnv("GROQ_API_KEY", "groq-fixture");
-  const copy = { headline: "Bem-vindo à oficina", subtitle: "Conheça nosso espaço e proposta.", about: "Informações para revisar.", action: "Saiba mais" };
+  const copy = {
+    headline: "Bem-vindo à oficina", subtitle: "Conheça nosso espaço e proposta.", about: "Informações para revisar.", action: "Saiba mais",
+    valueProposition: "Conheça a proposta da oficina.", serviceDescriptions: [],
+    seo: { title: "Conheça a oficina", description: "Uma apresentação da oficina." }, tone: "neutro", images: [], optionalSections: [],
+  };
   const fetchMock = vi.fn().mockResolvedValue(Response.json({
     choices: [{ finish_reason: "stop", message: { content: JSON.stringify(copy) } }],
     usage: { prompt_tokens: 300, completion_tokens: 110 },
@@ -27,4 +31,14 @@ it("envia o esquema ao Groq e preserva tokens da resposta", async () => {
   expect(url).toBe("https://api.groq.com/openai/v1/chat/completions");
   expect(JSON.parse(request.body).response_format.json_schema.strict).toBe(true);
   expect(adapter?.estimateMicros(300, 110)).toBe(56);
+});
+
+it("recusa resposta incompleta e mantém o consumo reportado pelo provedor", async () => {
+  vi.stubEnv("GROQ_API_KEY", "groq-fixture");
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
+    choices: [{ finish_reason: "stop", message: { content: JSON.stringify({ headline: "Texto incompleto" }) } }],
+    usage: { prompt_tokens: 40, completion_tokens: 10 },
+  })));
+  expect(await groq()?.generate({ name: "Oficina", segment: "Automotivo", services: [] }))
+    .toEqual({ error: "invalid", inputTokens: 40, outputTokens: 10 });
 });

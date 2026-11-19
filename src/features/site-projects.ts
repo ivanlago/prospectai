@@ -74,9 +74,9 @@ export async function generateSite(companyId: string, form: z.infer<typeof gener
   const costMicros = response.inputTokens === undefined || response.outputTokens === undefined
     ? reservedMicros : adapter.estimateMicros(response.inputTokens, response.outputTokens);
   const content = response.copy
-    ? assembleSite({ ...company, address: form.includeAddress ? company.address : "", email: form.email, whatsapp: form.whatsapp, photo }, form.serviceLines, response.copy) : null;
+    ? assembleSite({ ...company, address: form.includeAddress ? company.address : "", email: form.email, whatsapp: form.whatsapp, photo }, form.serviceLines, form.benefitLines, response.copy) : undefined;
   await db.update(websiteProjects).set({
-    status: content ? "ready" : "failed", content, costMicros, inputTokens: response.inputTokens,
+    status: content ? "ready" : "failed", content: content ?? null, costMicros, inputTokens: response.inputTokens,
     outputTokens: response.outputTokens, error: content ? null : response.error ?? "invalid", finishedAt: new Date(),
   }).where(and(eq(websiteProjects.id, projectId), eq(websiteProjects.status, "running")));
   return { projectId };

@@ -38,11 +38,19 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await page.getByRole("link", { name: "Gerar demonstração de site" }).click();
   await expect(page.getByLabel("Template")).toHaveValue("auto");
   await page.getByLabel("Serviços confirmados").fill("Manutenção preventiva");
+  await page.getByLabel("Benefícios ou diferenciais confirmados").fill("Atendimento com hora marcada");
   await page.getByLabel("E-mail comercial autorizado").fill("contato@example.test");
   await page.getByRole("checkbox", { name: /autorizo o envio/ }).check();
   await page.getByRole("button", { name: "Gerar demonstração" }).click();
   await expect(page.getByRole("heading", { name: "Cuidado em cada detalhe" })).toBeVisible();
   await expect(page.getByText("Manutenção preventiva", { exact: true })).toBeVisible();
+  await expect(page.getByText("Atendimento com hora marcada", { exact: true })).toBeVisible();
+  await expect(page.getByText("Consulte a empresa para conhecer os detalhes deste serviço.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Prévia composta" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("heading", { name: "Galeria" })).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.getByRole("article").evaluate(element => element.scrollWidth <= element.clientWidth + 2)).toBe(true);
+  await page.setViewportSize({ width: 1280, height: 720 });
   await expect(page.getByRole("link", { name: "contato@example.test" })).toHaveAttribute("href", "mailto:contato@example.test");
   await expect(page.getByText("Prévia demonstrativa independente. Não representa um site oficial da empresa.")).toBeVisible();
   const demoURL = page.url();
@@ -71,9 +79,11 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
     mimeType: "image/png",
     buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==", "base64"),
   });
+  await page.getByRole("checkbox", { name: /permissão para usar a foto/ }).check();
   await page.getByRole("checkbox", { name: /autorizo o envio/ }).check();
   await page.getByRole("button", { name: "Gerar demonstração" }).click();
-  await expect(page.getByRole("link", { name: "Layout original" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("link", { name: "Prévia composta" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("img", { name: "Foto fornecida para Oficina Central" })).toBeVisible();
   await page.getByRole("link", { name: "Comparar layouts" }).click();
   const editorial = page.getByRole("region", { name: "Beleza editorial" });
   await expect(editorial.getByText("Cuidados faciais", { exact: true })).toBeVisible();
@@ -93,7 +103,7 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await page.getByLabel("WhatsApp comercial autorizado").fill("5571999999999");
   await page.getByRole("checkbox", { name: /autorizo o envio/ }).check();
   await page.getByRole("button", { name: "Gerar demonstração" }).click();
-  await expect(page.getByRole("link", { name: "Layout odontológico" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("link", { name: "Prévia composta" })).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("heading", { name: "Tratamentos e serviços" })).toBeVisible();
   await expect(page.getByRole("link", { name: "WhatsApp", exact: true })).toHaveAttribute("href", "https://wa.me/5571999999999");
   await page.getByRole("link", { name: "Comparar layouts" }).click();
