@@ -41,6 +41,21 @@ export const aiCopy = z.object({
 export const visualTones = ["suave", "alto-contraste", "neutro"] as const;
 export const imageSubjects = ["ambiente", "equipamentos", "detalhes", "produtos"] as const;
 export const optionalSections = ["beneficios", "galeria"] as const;
+export const siteSections = ["hero", "servicos", "sobre", "beneficios", "galeria", "localizacao", "contato", "rodape"] as const;
+export type SiteSection = typeof siteSections[number];
+export const sectionLabels = {
+  hero: "Apresentação", servicos: "Serviços", sobre: "Sobre", beneficios: "Diferenciais",
+  galeria: "Galeria", localizacao: "Localização", contato: "Contato", rodape: "Rodapé",
+} satisfies Record<SiteSection, string>;
+const section = z.enum(siteSections);
+export const editorOptions = z.object({
+  order: z.array(section).length(siteSections.length).refine(order => new Set(order).size === siteSections.length),
+  hidden: z.array(section).max(siteSections.length - 1).refine(hidden => new Set(hidden).size === hidden.length),
+  palette: z.enum(["template", "oceano", "floresta", "ameixa", "grafite"]),
+  font: z.enum(["template", "serifa", "sem-serifa"]),
+  spacing: z.enum(["compacto", "regular", "amplo"]),
+}).strict().refine(options => !options.hidden.includes("hero"));
+export type EditorOptions = z.infer<typeof editorOptions>;
 export const serviceDescription = z.object({ index: z.number().int().min(0).max(7), description: prose(140) }).strict();
 const generatedDetails = {
   valueProposition: prose(140),
@@ -67,7 +82,16 @@ const legacySite = siteFields.extend({
   version: z.undefined().optional(),
   seo: z.object({ title: z.string().max(160), description: z.string().max(180) }),
 });
-export const composedSite = siteFields.extend({ version: z.literal(1), ...generatedDetails, benefits: z.array(publicLine).max(4).default([]) })
+const editableText = (max: number) => z.string().trim().min(1).max(max).refine(value => !/[<>]/.test(value));
+const editableDescriptions = z.array(serviceDescription.extend({ description: editableText(140) })).max(8)
+  .refine(items => new Set(items.map(item => item.index)).size === items.length);
+export const editableCopy = aiCopy.extend({
+  headline: editableText(100), subtitle: editableText(180), about: editableText(420),
+}).strict();
+export const composedSite = siteFields.extend({
+  version: z.literal(1), ...generatedDetails, copy: editableCopy, valueProposition: editableText(140),
+  serviceDescriptions: editableDescriptions, benefits: z.array(publicLine).max(4).default([]), editor: editorOptions.optional(),
+})
   .refine(content => content.serviceDescriptions.every(item => item.index < content.services.length));
 export const siteContent = z.union([composedSite, legacySite]);
 
@@ -84,6 +108,32 @@ export const generationForm = z.object({
 
 export type SiteContent = z.infer<typeof siteContent>;
 export type ComposedSite = z.infer<typeof composedSite>;
+
+export function defaultEditor(content: ComposedSite, template: TemplateId): EditorOptions {
+  const first = template === "health" || template === "beauty" || template === "services" ? ["sobre", "servicos"] : ["servicos", "sobre"];
+  return editorOptions.parse({
+    order: ["hero", ...first, ...new Set([...content.optionalSections, ...optionalSections]), "localizacao", "contato", "rodape"],
+    hidden: [], palette: "template", font: "template", spacing: "regular",
+  });
+}
+
+export function toComposedSite(content: SiteContent): ComposedSite {
+  if (content.version === 1) return content;
+  const { seo, ...legacy } = content;
+  const subtitle = prose(140).safeParse(content.copy.subtitle).data ?? "Conheça a apresentação da empresa.";
+  return composedSite.parse({
+    ...legacy, version: 1, valueProposition: subtitle, serviceDescriptions: [], benefits: [],
+    seo: { title: prose(70).safeParse(seo.title).data ?? "Demonstração da empresa",
+      description: prose(160).safeParse(seo.description).data ?? "Uma apresentação da empresa e seus serviços." },
+    tone: "suave", images: [], optionalSections: [],
+  });
+}
+
+export const editorInput = z.object({
+  copy: editableCopy, valueProposition: editableText(140),
+  serviceDescriptions: editableDescriptions,
+  editor: editorOptions, removePhoto: z.boolean(),
+}).strict();
 
 export function assembleSite(company: Pick<z.input<typeof siteFields>, "name" | "segment" | "city" | "state" | "address" | "photo" | "email" | "whatsapp">,
   services: string[], benefits: string[], copy: z.infer<typeof generatedCopy>) {

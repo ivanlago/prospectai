@@ -50,4 +50,6 @@ Abra uma empresa e selecione **Gerar demonstração de site**. Escolha um dos se
 
 `AI_DAILY_LIMIT` e `AI_MONTHLY_BUDGET_USD` controlam as tentativas por dia e o orçamento estimado do mês em America/Bahia. Os padrões são cinco tentativas por dia e US$ 5 por mês. Cada tentativa reserva uma estimativa antes da chamada e registra os tokens de entrada e saída quando disponíveis. O custo usa a tarifa padrão publicada e não representa a cobrança da conta. Consulte as tarifas do [Groq](https://console.groq.com/docs/model/openai/gpt-oss-20b) e do [Gemini](https://aistudio.google.com/docs/pricing#gemini-3.1-flash-lite). Os testes de navegador usam resposta controlada de IA.
 
+Na demonstração, use **Editar demonstração** para atualizar os textos, organizar as seções e trocar foto, paleta, tipografia ou espaçamento. Alterne entre **Desktop** e **Celular** para revisar a composição. **Salvar rascunho** cria uma revisão privada. Para recuperar uma anterior, selecione-a no histórico e use **Restaurar revisão**.
+
 Leia a documentação de [arquitetura](docs/architecture.md), [banco](docs/database.md), [fontes](docs/data-sources.md), [segurança](docs/security.md) e [implantação](docs/deployment.md).

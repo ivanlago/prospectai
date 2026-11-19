@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { aiCopy, assembleSite, generatedCopy, generationForm, siteContent, suggestedTemplate } from "../src/features/site-content";
+import { aiCopy, assembleSite, defaultEditor, editorInput, generatedCopy, generationForm, siteContent, suggestedTemplate, toComposedSite } from "../src/features/site-content";
 import { estimateMicros } from "../src/integrations/ai/gemini";
 
 const copy = { headline: "Conheça nosso espaço", subtitle: "Uma apresentação dos serviços.", about: "Informações comerciais para sua revisão.", action: "Saiba mais" } as const;
@@ -40,4 +40,16 @@ it("lê documentos antigos e recusa versões desconhecidas ou incompletas", () =
   expect(siteContent.safeParse(legacy).success).toBe(true);
   expect(siteContent.safeParse({ ...legacy, version: 1 }).success).toBe(false);
   expect(siteContent.safeParse({ ...legacy, version: 2 }).success).toBe(false);
+});
+
+it("abre documentos antigos no editor e controla os valores editáveis", () => {
+  const legacy = siteContent.parse({ ...company, services: [], copy, seo: { title: "Oficina", description: "Descrição" } });
+  const document = toComposedSite(legacy);
+  const editor = defaultEditor(document, "auto");
+  const data = { copy, valueProposition: document.valueProposition, serviceDescriptions: [], editor, removePhoto: false };
+  expect(editorInput.safeParse(data).success).toBe(true);
+  expect(editorInput.safeParse({ ...data, editor: { ...editor, palette: "url(invalid)" } }).success).toBe(false);
+  expect(editorInput.safeParse({ ...data, editor: { ...editor, hidden: ["hero"] } }).success).toBe(false);
+  expect(editorInput.safeParse({ ...data, copy: { ...copy, headline: "<img>" } }).success).toBe(false);
+  expect(editorInput.safeParse({ ...data, photo: "https://example.test/photo" }).success).toBe(false);
 });

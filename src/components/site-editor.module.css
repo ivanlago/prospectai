@@ -1,0 +1,21 @@
+.editor { display: grid; grid-template-columns: minmax(160px, .8fr) minmax(0, 2.4fr) minmax(220px, 1fr); gap: 14px; align-items: start; }
+.sections { display: grid; gap: 5px; padding: 0; margin: 0; list-style: none; }
+.sections button { width: 100%; justify-content: flex-start; text-align: start; }
+.preview { display: grid; gap: 12px; min-width: 0; }
+.device { width: 100%; margin-inline: auto; }
+.device[data-mobile="true"] { max-width: 390px; }
+.editor [hidden] { display: none; }
+.device :global([data-site-section]) { cursor: pointer; }
+.device[data-selected="hero"] :global([data-site-section="hero"]),
+.device[data-selected="servicos"] :global([data-site-section="servicos"]),
+.device[data-selected="sobre"] :global([data-site-section="sobre"]),
+.device[data-selected="beneficios"] :global([data-site-section="beneficios"]),
+.device[data-selected="galeria"] :global([data-site-section="galeria"]),
+.device[data-selected="localizacao"] :global([data-site-section="localizacao"]),
+.device[data-selected="contato"] :global([data-site-section="contato"]),
+.device[data-selected="rodape"] :global([data-site-section="rodape"]) { outline: 2px solid var(--link); outline-offset: -2px; }
+@media (max-width: 1150px) {
+  .editor { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .preview { grid-column: 1 / -1; grid-row: 2; }
+}
+@media (max-width: 620px) { .editor { display: flex; flex-direction: column; } .editor > * { width: 100%; } }

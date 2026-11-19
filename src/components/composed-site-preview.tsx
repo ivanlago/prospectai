@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { ArrowRight, Briefcase, CircleCheck, Coffee, Cross, MapPin, Scissors, Sparkles, Smile, Wrench } from "lucide-react";
-import { optionalSections, type ComposedSite, type TemplateId } from "@/features/site-content";
+import { defaultEditor, type ComposedSite, type SiteSection, type TemplateId } from "@/features/site-content";
 import styles from "./composed-site-preview.module.css";
 
 const identities = {
@@ -13,17 +13,18 @@ const identities = {
   services: { Icon: Briefcase, services: "Como podemos ajudar" },
 } satisfies Record<TemplateId, { Icon: typeof Cross; services: string }>;
 
-function Hero({ content, template }: { content: ComposedSite; template: TemplateId }) {
+function Hero({ content, template, visible }: { content: ComposedSite; template: TemplateId; visible: (section: SiteSection) => boolean }) {
   const { Icon } = identities[template];
-  const services = content.services.length > 0;
+  const services = visible("servicos");
   return <section className={styles.hero}>
     <div className={styles.intro}>
       <p className={styles.segment}>{content.segment}</p>
       <h2>{content.copy.headline}</h2>
       <p className={styles.subtitle}>{content.copy.subtitle}</p>
-      <a className={styles.cta} href={services && content.copy.action === "Conheça os serviços" ? "#site-servicos" : "#site-sobre"}>
-        {services ? content.copy.action : "Saiba mais"} <ArrowRight size={17} aria-hidden="true" />
-      </a>
+      {(services || visible("sobre")) && <a className={styles.cta}
+        href={services && (!visible("sobre") || content.copy.action === "Conheça os serviços") ? "#site-servicos" : "#site-sobre"}>
+        {services && !visible("sobre") ? "Conheça os serviços" : services ? content.copy.action : "Saiba mais"} <ArrowRight size={17} aria-hidden="true" />
+      </a>}
     </div>
     <div className={styles.art} aria-hidden="true"><Icon strokeWidth={1.15} /></div>
   </section>;
@@ -80,32 +81,38 @@ function Contact({ email, whatsapp }: Pick<ComposedSite, "email" | "whatsapp">) 
   </section>;
 }
 
-export function ComposedSitePreview({ content, template }: { content: ComposedSite; template: TemplateId }) {
-  const aboutFirst = template === "health" || template === "beauty" || template === "services";
-  const about = <About content={content} />;
-  const services = <Services content={content} title={identities[template].services} />;
-  const sectionOrder = [...new Set([...content.optionalSections, ...optionalSections])];
+export function ComposedSitePreview({ content, template, viewport }: { content: ComposedSite; template: TemplateId; viewport?: "desktop" | "mobile" }) {
+  const options = content.editor ?? defaultEditor(content, template);
+  const available = {
+    hero: true, servicos: Boolean(content.services.length), sobre: true, beneficios: Boolean(content.benefits.length),
+    galeria: Boolean(content.photo), localizacao: true, contato: Boolean(content.email || content.whatsapp), rodape: true,
+  };
+  const visible = (section: SiteSection) => available[section] && !options.hidden.includes(section);
+  const blocks = {
+    hero: <Hero content={content} template={template} visible={visible} />,
+    servicos: <Services content={content} title={identities[template].services} />,
+    sobre: <About content={content} />,
+    beneficios: <Benefits items={content.benefits} />,
+    galeria: <Gallery content={content} />,
+    localizacao: <Location content={content} />,
+    contato: <Contact email={content.email} whatsapp={content.whatsapp} />,
+    rodape: <footer className={styles.footer}><strong>{content.name}</strong><span>Demonstração independente</span></footer>,
+  };
 
-  return <article className={styles.site} data-template={template} data-tone={content.tone}>
+  return <article className={styles.site} data-template={template} data-tone={content.tone}
+    data-palette={options.palette} data-font={options.font} data-spacing={options.spacing} data-viewport={viewport}>
     <p className={styles.notice}>Prévia demonstrativa independente. Não representa um site oficial da empresa.</p>
     <header className={styles.header}>
       <strong>{content.name}</strong>
       <nav aria-label="Seções da demonstração">
-        {content.services.length > 0 && <a href="#site-servicos">Serviços</a>}
-        <a href="#site-sobre">Sobre</a>
-        {content.photo && <a href="#site-galeria">Galeria</a>}
-        <a href="#site-localizacao">Localização</a>
-        {(content.email || content.whatsapp) && <a href="#site-contato">Contato</a>}
+        {visible("servicos") && <a href="#site-servicos">Serviços</a>}
+        {visible("sobre") && <a href="#site-sobre">Sobre</a>}
+        {visible("galeria") && <a href="#site-galeria">Galeria</a>}
+        {visible("localizacao") && <a href="#site-localizacao">Localização</a>}
+        {visible("contato") && <a href="#site-contato">Contato</a>}
       </nav>
     </header>
-    <Hero content={content} template={template} />
-    <div className={styles.sections}>
-      {aboutFirst ? <>{about}{services}</> : <>{services}{about}</>}
-      {sectionOrder.map(section => section === "beneficios"
-        ? <Benefits key={section} items={content.benefits} />
-        : <Gallery key={section} content={content} />)}
-      <div className={styles.details}><Location content={content} /><Contact email={content.email} whatsapp={content.whatsapp} /></div>
-    </div>
-    <footer className={styles.footer}><strong>{content.name}</strong><span>Demonstração independente</span></footer>
+    {options.order.filter(visible).map(section => <div key={section} data-site-section={section}
+      className={section === "hero" || section === "rodape" ? undefined : styles.sections}>{blocks[section]}</div>)}
   </article>;
 }

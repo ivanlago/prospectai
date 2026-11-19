@@ -15,15 +15,18 @@ import { websiteProjects } from "@/db/schema";
 import { id } from "@/domain";
 import { siteContent, templateId } from "@/features/site-content";
 import { generationMessages } from "@/features/site-projects";
+import { latestRevision } from "@/features/site-revisions";
 import { cache } from "react";
 
 const load = cache(async (rawId: string) => {
   await requireAdmin();
   const siteId = id.safeParse(rawId).data;
   if (!siteId) notFound();
-  const [project] = await getDb().select().from(websiteProjects).where(eq(websiteProjects.id, siteId));
+  const db = getDb();
+  const [project] = await db.select().from(websiteProjects).where(eq(websiteProjects.id, siteId));
   if (!project) notFound();
-  return project;
+  const [latest] = project.status === "ready" ? await latestRevision(db, project.id) : [];
+  return { ...project, content: latest?.content ?? project.content };
 });
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -63,6 +66,7 @@ export default async function Site({ params, searchParams }: {
           className={`button${layout === option.id ? " primary" : ""}`} aria-current={layout === option.id ? "page" : undefined}>
           {option.label}
         </Link>)}
+        <Link href={`/sites/${project.id}/editar`} className="button">Editar demonstração</Link>
       </nav>
       {layout === "composicao" && content.version === 1 ? <>
         <ComposedSitePreview content={content} template={template} />
