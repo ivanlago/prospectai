@@ -7,3 +7,4 @@
 - Configure recuperação por e-mail somente com um remetente verificado. O e-mail contém um token de uso único, expira em quinze minutos e a redefinição revoga sessões.
 - Restrinja acesso ao banco e ao ambiente de execução. Remova a senha de provisionamento após o uso. Revise periodicamente a finalidade dos cadastros, os backups e a retenção dos registros de auditoria.
 - O servidor registra identificadores de eventos técnicos. Integre coleta e alertas ao configurar o ambiente de produção.
+- A rota `/demo/[token]` serve somente uma cópia aprovada de uma revisão. O token tem 256 bits aleatórios e aparece por inteiro apenas na criação. A rota usa `no-store`, `noindex` e `no-referrer`. Revogação, expiração e perda do vínculo com a empresa bloqueiam novas visitas. Nas configurações de observabilidade do hospedeiro, restrinja acesso aos caminhos completos ou mascare o segmento do token.

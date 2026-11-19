@@ -67,6 +67,7 @@ export default async function Site({ params, searchParams }: {
           {option.label}
         </Link>)}
         <Link href={`/sites/${project.id}/editar`} className="button">Editar demonstração</Link>
+        <Link href={`/sites/${project.id}/compartilhar`} className="button">Compartilhar demonstração</Link>
       </nav>
       {layout === "composicao" && content.version === 1 ? <>
         <ComposedSitePreview content={content} template={template} />

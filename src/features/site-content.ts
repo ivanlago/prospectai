@@ -88,11 +88,11 @@ const editableDescriptions = z.array(serviceDescription.extend({ description: ed
 export const editableCopy = aiCopy.extend({
   headline: editableText(100), subtitle: editableText(180), about: editableText(420),
 }).strict();
-export const composedSite = siteFields.extend({
+export const composedSiteFields = siteFields.extend({
   version: z.literal(1), ...generatedDetails, copy: editableCopy, valueProposition: editableText(140),
   serviceDescriptions: editableDescriptions, benefits: z.array(publicLine).max(4).default([]), editor: editorOptions.optional(),
-})
-  .refine(content => content.serviceDescriptions.every(item => item.index < content.services.length));
+});
+export const composedSite = composedSiteFields.refine(content => content.serviceDescriptions.every(item => item.index < content.services.length));
 export const siteContent = z.union([composedSite, legacySite]);
 
 export const generationForm = z.object({

@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { PGlite } from "@electric-sql/pglite";
 import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 
@@ -39,6 +39,23 @@ for (const [script, argument] of [
   const result = await new Promise(resolve => child.once("exit", resolve));
   if (result !== 0) process.exit(1);
 }
+
+const expiredToken = Buffer.alloc(32, 163).toString("base64url");
+await db.query(`
+  with company as (
+    insert into companies (name, segment, country, state, city, identity_key, created_at)
+      values ('Empresa da prévia expirada', 'Serviços', 'Brasil', 'Bahia', 'Salvador', 'fixture-expirada', '2000-01-01') returning id
+  ), project as (
+    insert into website_projects (company_id, template, status, model, cost_micros, created_at)
+      select id, 'services', 'ready', 'fixture', 0, '2000-01-01' from company returning id
+  )
+  insert into website_share_links (project_id, revision, token_hash, snapshot, expires_at)
+    select id, 0, $1, $2::jsonb, '2000-01-02' from project
+`, [createHash("sha256").update(expiredToken).digest("hex"), JSON.stringify({
+  template: "services", version: 1, name: "Empresa da prévia expirada", segment: "Serviços", city: "Salvador", state: "Bahia",
+  services: [], benefits: [], serviceDescriptions: [], tone: "suave", valueProposition: "Conheça a empresa.",
+  copy: { headline: "Título da prévia expirada", subtitle: "Uma demonstração de teste.", about: "Conteúdo de teste.", action: "Saiba mais" },
+})]);
 
 const app = run("--import", "./tests/overpass-fixture.mjs", "node_modules/next/dist/bin/next", "start", "--port", "3841", "--hostname", "127.0.0.1");
 process.on("SIGINT", () => app.kill());

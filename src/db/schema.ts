@@ -170,6 +170,18 @@ export const websiteEditAttempts = pgTable("website_edit_attempts", {
   finishedAt: date("finished_at"),
 }, table => [index().on(table.createdAt), index().on(table.projectId, table.createdAt)]);
 
+export const websiteShareLinks = pgTable("website_share_links", {
+  id: uuid().primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => websiteProjects.id, { onDelete: "cascade" }),
+  actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+  revision: integer().notNull(),
+  tokenHash: text("token_hash").notNull().unique(),
+  snapshot: jsonb(),
+  expiresAt: date("expires_at").notNull(),
+  revokedAt: date("revoked_at"),
+  createdAt: created(),
+}, table => [index().on(table.projectId, table.createdAt), index().on(table.expiresAt)]);
+
 export const activities = pgTable("activities", {
   id: uuid().primaryKey().defaultRandom(),
   companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),

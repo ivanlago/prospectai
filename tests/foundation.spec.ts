@@ -9,6 +9,15 @@ test("protege rotas e bloqueia cadastro público", async ({ page, request }) => 
   expect(response.status()).toBe(403);
 });
 
+test("responde com 404 para uma demonstração expirada ou sem token válido", async ({ request }) => {
+  for (const token of ["invalido", Buffer.alloc(32, 163).toString("base64url")]) {
+    const response = await request.get(`/demo/${token}`);
+    expect(response.status()).toBe(404);
+    expect(await response.text()).not.toContain("Título da prévia expirada");
+    expect(response.headers()["cache-control"]).toContain("no-store");
+  }
+});
+
 test("admin cria, edita e exclui registros, move etapa e encerra sessão", async ({ page }) => {
   await page.goto("/entrar");
   await page.getByLabel("E-mail").fill("admin@example.test");
@@ -54,6 +63,26 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await expect(page.getByRole("link", { name: "contato@example.test" })).toHaveAttribute("href", "mailto:contato@example.test");
   await expect(page.getByText("Prévia demonstrativa independente. Não representa um site oficial da empresa.")).toBeVisible();
   const demoURL = page.url();
+  await page.getByRole("link", { name: "Compartilhar demonstração" }).click();
+  await page.getByLabel("Validade do link").selectOption("1");
+  await page.getByRole("checkbox", { name: /aprovo o conteúdo exibido/ }).check();
+  await page.getByRole("button", { name: "Criar link de demonstração" }).click();
+  const publicInput = page.getByRole("textbox", { name: "Link de demonstração" });
+  await expect(publicInput).toHaveValue(/\/demo\/[\w-]{43}$/);
+  const publicURL = await publicInput.inputValue();
+  const shareURL = page.url();
+  const visitor = await page.context().browser()!.newContext();
+  const publicPage = await visitor.newPage();
+  const publicResponse = await publicPage.goto(publicURL);
+  expect(publicResponse?.status()).toBe(200);
+  expect(publicResponse?.headers()["cache-control"]).toContain("no-store");
+  expect(publicResponse?.headers()["x-robots-tag"]).toContain("noindex");
+  expect(publicResponse?.headers()["referrer-policy"]).toBe("no-referrer");
+  await expect(publicPage.getByRole("heading", { name: "Cuidado em cada detalhe" })).toBeVisible();
+  await expect(publicPage.getByText("contato@example.test")).toHaveCount(0);
+  await expect(publicPage.getByText("Retornar na sexta-feira.")).toHaveCount(0);
+  await expect(publicPage.getByRole("navigation", { name: "Menu principal" })).toHaveCount(0);
+  await page.getByRole("link", { name: "Voltar à demonstração" }).click();
   await page.getByRole("link", { name: "Comparar layouts" }).click();
   await expect(page.getByRole("heading", { name: "Cuidado em cada detalhe" })).toHaveCount(2);
   await expect(page.getByRole("region", { name: "Clínica redesenhada" }).getByText("Manutenção preventiva")).toBeVisible();
@@ -102,9 +131,24 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await expect(page.getByText("Revisão 3 salva.")).toBeVisible();
   await expect(page.getByRole("article")).toHaveAttribute("data-palette", "oceano");
   await expect(page.getByRole("article").getByRole("heading", { name: "Conheça a nossa oficina" })).toBeVisible();
+  await publicPage.reload();
+  await expect(publicPage.getByRole("heading", { name: "Cuidado em cada detalhe" })).toBeVisible();
+  await expect(publicPage.getByRole("article")).toHaveAttribute("data-palette", "template");
   await page.getByRole("button", { name: "Desfazer alteração da IA" }).click();
   await expect(page.getByText("Revisão 4 salva.")).toBeVisible();
   await expect(page.getByRole("article")).toHaveAttribute("data-palette", "template");
+  await page.goto(shareURL);
+  await expect(publicInput).toHaveCount(0);
+  await page.getByRole("button", { name: "Revogar link" }).click();
+  await expect(page.getByRole("cell", { name: "Revogado" })).toBeVisible();
+  expect((await publicPage.reload())?.status()).toBe(404);
+  await page.getByRole("checkbox", { name: /aprovo o conteúdo exibido/ }).check();
+  await page.getByRole("button", { name: "Criar link de demonstração" }).click();
+  await expect(publicInput).toHaveValue(/\/demo\/[\w-]{43}$/);
+  const attachedURL = await publicInput.inputValue();
+  expect((await publicPage.goto(attachedURL))?.status()).toBe(200);
+  await visitor.close();
+  await page.goto(editURL);
   await page.getByRole("link", { name: "Abrir prévia salva" }).click();
   await page.getByRole("link", { name: "Ver histórico" }).click();
   await expect(page.getByRole("cell", { name: "300 / 110" })).toBeVisible();
@@ -192,6 +236,8 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
   await expect(page.getByText("21 de 21 empresas")).toBeVisible();
   await page.getByRole("link", { name: "Cards", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Cards", exact: true })).toHaveAttribute("aria-current", "true");
+  await expect(page.getByRole("table")).toHaveCount(0);
   await page.getByRole("checkbox", { name: "Selecionar Cafeteria de teste 01" }).check();
   await page.getByRole("button", { name: "Mostrar somente selecionadas" }).click();
   await expect(page.getByText("Cafeteria de teste 02", { exact: true })).toHaveCount(0);
@@ -220,6 +266,7 @@ test("admin cria, edita e exclui registros, move etapa e encerra sessão", async
   page.once("dialog", dialog => dialog.accept());
   await page.getByRole("button", { name: "Excluir empresa" }).click();
   await expect(page.getByText("Empresa excluída.")).toBeVisible();
+  expect((await page.request.get(attachedURL)).status()).toBe(404);
   await page.getByRole("button", { name: "Sair" }).click();
   await expect(page).toHaveURL(/\/entrar$/);
   await page.goto("/oportunidades");

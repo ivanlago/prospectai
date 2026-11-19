@@ -11,6 +11,12 @@ const config: NextConfig = {
         { key: "Referrer-Policy", value: "same-origin" },
         { key: "X-Robots-Tag", value: "noindex, nofollow" },
       ],
+    }, {
+      source: "/demo/:path*",
+      headers: [
+        { key: "Cache-Control", value: "private, no-store, max-age=0" },
+        { key: "Referrer-Policy", value: "no-referrer" },
+      ],
     }];
   },
 };
