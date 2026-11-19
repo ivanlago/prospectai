@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { osmFilters, osmProvider, overpassQuery, parseOverpass } from "../src/integrations/discovery/overpass";
+import { digitalPresence, resultFilters } from "../src/features/discovery-results";
 
 const filters = osmFilters.parse({ city: "Salvador", state: "Bahia", category: "cafe", keyword: "", region: "", limit: 30, presence: "any" });
 const cafe = (id: number, name: string, tags: Record<string, string> = {}) => ({ type: "node", id, tags: { name, amenity: "cafe", ...tags } });
@@ -7,6 +8,16 @@ const cafe = (id: number, name: string, tags: Record<string, string> = {}) => ({
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Descoberta por OpenStreetMap", () => {
+  it("distingue evidência de revisão da informação disponível na fonte", () => {
+    expect(digitalPresence("", null)).toBe("unlisted");
+    expect(digitalPresence("", "website_not_found")).toBe("notFound");
+    expect(digitalPresence("", "website_found")).toBe("verified");
+    expect(digitalPresence("", "verification_failed")).toBe("unverified");
+    expect(digitalPresence("https://instagram.com/cafe", null)).toBe("social");
+    expect(digitalPresence("https://example.test", null)).toBe("listed");
+    expect(resultFilters.parse({ visualizacao: ["tabela", "cards"], presenca: "invalid" }))
+      .toMatchObject({ visualizacao: "cards", presenca: "" });
+  });
   it("delimita município e UF sem aceitar metacaracteres de consulta", () => {
     expect(overpassQuery(filters)).toContain('["ISO3166-2"="BR-BA"]');
     expect(overpassQuery(filters)).toContain('["name"="Salvador"]');

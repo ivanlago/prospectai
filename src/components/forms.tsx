@@ -2,18 +2,21 @@
 
 import { startTransition, useActionState } from "react";
 
-export function ActionForm({ action, children, label }: {
-  action: (state: string, data: FormData) => Promise<string>; children: React.ReactNode; label: string;
+export function ActionForm({ action, children, label, executeLabel }: {
+  action: (state: string, data: FormData) => Promise<string>; children: React.ReactNode; label: string; executeLabel?: string;
 }) {
   const [notice, dispatch, pending] = useActionState(action, "");
   return <form action={dispatch} onSubmit={event => {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const data = new FormData(event.currentTarget, submitter);
     startTransition(() => dispatch(data));
-  }} className="stack">
+  }} className="stack" aria-busy={pending}>
     {children}
     {notice && <p className="feedback" role="status">{notice}</p>}
-    <div><button className="button primary" disabled={pending}>{pending ? "Salvando…" : label}</button></div>
+    {pending && executeLabel && <p className="feedback" role="status">Processando a solicitação…</p>}
+    <div className="toolbar"><button className={executeLabel ? "button" : "button primary"} disabled={pending}>{pending ? "Aguarde…" : label}</button>
+      {executeLabel && <button className="button primary" name="intent" value="execute" disabled={pending}>{executeLabel}</button>}</div>
   </form>;
 }
 

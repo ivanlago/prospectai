@@ -10,34 +10,33 @@ import { SearchEditor } from "@/components/search-editor";
 import { getDb } from "@/db";
 import { searches } from "@/db/schema";
 import { formatDate, id, searchForm } from "@/domain";
-import { getRuns } from "@/features/discovery";
-import { categoryOptions, osmEnabled, osmProvider } from "@/integrations/discovery/overpass";
-import { extractMunicipality, extractEnabled, extractProvider } from "@/integrations/discovery/municipal-extract";
+import { discoveryNotices, getRuns } from "@/features/discovery";
+import { discoverySources } from "@/integrations/discovery/registry";
 import { removeSearch } from "../../actions";
 import { cancelRun, runSearch } from "../discovery-actions";
 
-export default async function EditSearch({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ historico?: string }> }) {
+export default async function EditSearch({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ historico?: string; execucao?: string }> }) {
   await requireAdmin();
   const searchId = id.safeParse((await params).id).data;
   if (!searchId) notFound();
   const [row] = await getDb().select().from(searches).where(eq(searches.id, searchId));
   if (!row) notFound();
   const saved = searchForm.safeParse({ ...(row.config as object), name: row.name }).data;
-  const page = pageNumber((await searchParams).historico);
+  const query = await searchParams;
+  const page = pageNumber(query.historico);
+  const notice = typeof query.execucao === "string" && Object.hasOwn(discoveryNotices, query.execucao) ? discoveryNotices[query.execucao] : null;
   const runs = await getRuns(searchId, page);
   const labels = { running: "Em andamento", completed: "Concluída", failed: "Falhou", cancelled: "Cancelada" };
   const searchUrl = `/pesquisas/${row.id}`;
-  const sources = [];
-  const municipality = saved && extractMunicipality(saved);
-  if (municipality && extractEnabled()) sources.push({ value: extractProvider.id, label: `Extrato de ${municipality.name} · Geofabrik` });
-  if (osmEnabled()) sources.push({ value: osmProvider.id, label: "OpenStreetMap · Overpass" });
+  const sources = saved ? discoverySources(saved) : [];
   return <><PageHeader title={row.name} description="Edite os critérios salvos para esta pesquisa." />
     <section className="panel padded stack">
       <h2>Descobrir empresas</h2>
+      {notice && <p className="feedback" role="status">{notice}</p>}
       <p>Até 50 resultados por execução. O Overpass permite cinco chamadas a cada 24 horas. Os extratos municipais consultam dados locais.</p>
-      <p>Deixe avaliação, mínimo de avaliações e raio vazios. O filtro de bairro depende do endereço disponível na fonte.</p>
+      <p>OpenStreetMap não oferece avaliações neste fluxo. O filtro de bairro depende do endereço disponível na fonte.</p>
       <OsmCredit />
-      {sources.length ? <DiscoveryForm action={runSearch.bind(null, row.id)} categories={categoryOptions} sources={sources} /> :
+      {sources.length ? <DiscoveryForm action={runSearch.bind(null, row.id)} sources={sources} /> :
         <p role="status">Nenhuma fonte habilitada para esta localização.</p>}
     </section>
     <section className="panel padded stack">

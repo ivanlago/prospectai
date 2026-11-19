@@ -9,6 +9,8 @@ import { getDb } from "@/db";
 import { searches } from "@/db/schema";
 import { companyForm, id, searchForm, stages } from "@/domain";
 import { addNote, deleteCompany, moveCompany, saveCompany } from "@/features/companies";
+import { discoveryNotices, executeDiscovery } from "@/features/discovery";
+import { getDiscoveryProvider } from "@/integrations/discovery/registry";
 
 export async function persistCompany(companyId: string | null, _state: string, form: FormData) {
   const actor = await requireAdmin();
@@ -54,17 +56,32 @@ export async function saveNote(companyId: string, _state: string, form: FormData
 export async function persistSearch(searchId: string | null, _state: string, form: FormData) {
   await requireAdmin();
   const data = Object.fromEntries(form);
+  const clearLegacy = data.clearLegacy === "on";
   const parsed = searchForm.safeParse({
-    ...data, radius: data.radius || null, rating: data.rating || null, reviews: data.reviews || null,
+    ...data, radius: clearLegacy ? null : data.radius || null, rating: clearLegacy ? null : data.rating || null,
+    reviews: clearLegacy ? null : data.reviews || null,
   });
   if (!parsed.success || (searchId && !id.safeParse(searchId).success)) return "Confira a configuração e os limites informados.";
   const { name, ...config } = parsed.data;
+  const execute = !searchId && data.intent === "execute";
+  if (execute) {
+    const provider = getDiscoveryProvider(data.provider);
+    if (!provider) return discoveryNotices.disabled;
+    const prepared = provider.prepare(parsed.data, data.category);
+    if ("error" in prepared) return discoveryNotices[prepared.error] ?? discoveryNotices.invalid;
+  }
   const values = { name, config, updatedAt: new Date() };
   if (searchId) {
     const [updated] = await getDb().update(searches).set(values).where(eq(searches.id, searchId)).returning({ id: searches.id });
     if (!updated) return "Pesquisa indisponível.";
   } else {
-    await getDb().insert(searches).values(values);
+    const [created] = await getDb().insert(searches).values(values).returning({ id: searches.id });
+    if (execute) {
+      const result = await executeDiscovery(created.id, data.category, data.provider, parsed.data);
+      revalidatePath("/", "layout");
+      if (result.id) redirect(`/pesquisas/execucoes/${result.id}`);
+      redirect(`/pesquisas/${created.id}?execucao=${encodeURIComponent(result.error ?? "invalid")}`);
+    }
   }
   revalidatePath("/", "layout");
   redirect("/pesquisas?salva=1");

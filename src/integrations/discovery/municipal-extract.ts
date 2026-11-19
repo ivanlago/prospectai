@@ -3,7 +3,8 @@ import { z } from "zod";
 import lauroExtract from "../../../data/osm-lauro-de-freitas.json";
 import camacariExtract from "../../../data/osm-camacari.json";
 import bundledExtract from "../../../data/osm-salvador.json";
-import { filterOsmElements, normalize, ProviderError, type BusinessSearchProvider, type DiscoveryFilters } from "./overpass";
+import { filterOsmElements, normalize, type DiscoveryFilters } from "./overpass";
+import { ProviderError, type BusinessSearchProvider } from "./provider";
 
 const municipalities = [
   { key: "salvador", name: "Salvador", bundled: bundledExtract },
@@ -20,7 +21,7 @@ export function extractMunicipality(input: Pick<DiscoveryFilters, "city" | "stat
   return municipalities.find(municipality => municipality.key === normalize(input.city));
 }
 
-export const extractProvider: BusinessSearchProvider = {
+export const extractProvider: BusinessSearchProvider<DiscoveryFilters> = {
   id: "openstreetmap-geofabrik",
   async search(input, signal) {
     const municipality = extractMunicipality(input);

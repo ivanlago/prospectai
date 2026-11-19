@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { companyKey } from "../../domain";
+import { ProviderError, type BusinessResult, type BusinessSearchProvider } from "./provider";
 
 const stateNames = {
   AC: "Acre", AL: "Alagoas", AP: "Amapá", AM: "Amazonas", BA: "Bahia", CE: "Ceará",
@@ -35,11 +36,6 @@ export const osmFilters = z.object({
 }).refine(value => Boolean(findState(value.state)), { path: ["state"] });
 
 export type DiscoveryFilters = z.infer<typeof osmFilters>;
-export type BusinessResult = { reference: string; name: string; website: string; district: string; identityKey: string };
-export type BusinessSearchProvider = {
-  id: string;
-  search(input: DiscoveryFilters, signal?: AbortSignal): Promise<{ results: BusinessResult[]; truncated: boolean; snapshotDate?: string }>;
-};
 
 function findState(value: string) {
   return stateOptions.find(([code, name]) => [normalize(code), normalize(name)].includes(normalize(value)));
@@ -106,10 +102,6 @@ export function filterOsmElements(elements: unknown[], input: DiscoveryFilters, 
   return { results: results.slice(0, input.limit), truncated: scanTruncated || results.length > input.limit };
 }
 
-export class ProviderError extends Error {
-  constructor(public readonly code: string) { super(code); }
-}
-
 async function readBounded(response: Response) {
   const reader = response.body?.getReader();
   if (!reader) throw new ProviderError("invalid");
@@ -129,7 +121,7 @@ async function readBounded(response: Response) {
   }
 }
 
-export const osmProvider: BusinessSearchProvider = {
+export const osmProvider: BusinessSearchProvider<DiscoveryFilters> = {
   id: "openstreetmap",
   async search(input, signal) {
     const timeout = AbortSignal.timeout(18000);

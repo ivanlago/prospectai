@@ -31,7 +31,8 @@ Os testes usam um PostgreSQL embarcado (PGlite) descartável, sem conexão com a
 
 - Em **CRM**, cadastre nome, segmento e localização. Site e contato são opcionais. A busca aceita nome, cidade e segmento, com filtro por etapa.
 - Em **Oportunidades**, mova empresas entre as onze etapas. Abra uma empresa para ver as alterações recentes e registrar uma nota.
-- No **Dashboard**, selecione **Iniciar pesquisa** para definir os critérios. Em **Encontrar empresas**, abra pesquisas salvas e escolha uma fonte de descoberta. Para Salvador, Lauro de Freitas e Camaçari, escolha o [extrato municipal da Geofabrik](docs/data-sources.md#extratos-municipais). O piloto Overpass pode ser habilitado com `ENABLE_OSM_PILOT=true`. Use Brasil, UF por nome ou sigla e limite de até 50. Deixe avaliação, quantidade de avaliações e raio vazios. Os resultados ficam em uma área separada do CRM.
+- No **Dashboard**, selecione **Iniciar pesquisa** para definir os critérios. Escolha uma fonte e use **Salvar e executar** ou salve os critérios para voltar depois em **Encontrar empresas**. Para Salvador, Lauro de Freitas e Camaçari, use o [extrato municipal da Geofabrik](docs/data-sources.md#extratos-municipais). O piloto Overpass pode ser habilitado com `ENABLE_OSM_PILOT=true`. Use Brasil, UF por nome ou sigla e limite de até 50. As fontes atuais não oferecem avaliações ou busca por raio. Os resultados ficam em uma área separada do CRM.
+- Nos resultados, alterne entre **Cards** e **Tabela**, filtre por presença digital, revisão, localização ou segmento e abra a revisão de cada oportunidade. O botão **Reexecutar consulta** usa os critérios da execução aberta e respeita os limites da fonte.
 - No **Dashboard**, compare o funil e os indicadores por período de cadastro. A conversão usa a etapa atual das empresas cadastradas no período.
 - Em **Configurações**, consulte a conta administrativa e alterne entre os temas claro e escuro. A escolha é salva no navegador.
 

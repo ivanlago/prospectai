@@ -124,6 +124,17 @@ meter::-webkit-meter-optimum-value { background: var(--accent); }
 .login-card h1 { font-size: 29px; }
 .skeleton { display: flex; align-items: center; gap: 10px; padding: 30px; color: var(--muted); }
 .loading-spinner { width: 17px; height: 17px; border: 2px solid var(--line); border-top-color: var(--link); border-radius: 50%; }
+.discovery-filters { align-items: end; }
+.discovery-filters label { min-width: 0; max-width: 100%; }
+.discovery-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 265px), 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.discovery-card { display: flex; flex-direction: column; gap: 10px; padding: 15px; overflow-wrap: anywhere; }
+.discovery-card-heading, .discovery-card-location, .discovery-card-source a { display: flex; align-items: center; gap: 8px; }
+.discovery-card-heading p, .discovery-card-location, .discovery-card-url { color: var(--muted); }
+.discovery-card-location svg { flex: none; }
+.discovery-card-heading input { margin-inline-start: auto; flex: none; }
+.discovery-selection .button:disabled { cursor: default; }
+.discovery-card .pill { display: inline-block; white-space: normal; }
+.discovery-card-actions { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--line); }
 @media (prefers-reduced-motion: no-preference) {
   .loading-spinner { animation: panel-spin .8s linear infinite; }
 }
